@@ -1,0 +1,15 @@
+{
+  "name": "url-resolver",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "deploy": "wrangler deploy",
+    "dev": "wrangler dev",
+    "generate-types": "wrangler types",
+    "check": "generate-types && tsc --noEmit"
+  },
+  "devDependencies": {
+    "typescript": "^5.8.2"
+  }
+}
