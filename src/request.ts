@@ -25,3 +25,8 @@ export async function extractUrl(
   if (!extractedUrl) return null;
   return normalizeTarget(extractedUrl.trim());
 }
+
+export function extractDebugFlag(url: URL): boolean {
+  const rawDebug = url.searchParams.get("debug");
+  return rawDebug?.trim().toLowerCase() === "true";
+}

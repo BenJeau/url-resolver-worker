@@ -21,10 +21,13 @@ async function getWorkerIp(): Promise<string | null> {
   }
 }
 
-export async function getWorkerInfo(request: Request): Promise<WorkerInfo> {
+export async function getWorkerInfo(
+  request: Request,
+  resolveIp = false,
+): Promise<WorkerInfo> {
   const cf = request.cf;
   return {
-    ip: await getWorkerIp(),
+    ip: resolveIp ? await getWorkerIp() : null,
     colo: cf?.colo as string | null,
     country: cf?.country as string | null,
     city: cf?.city as string | null,

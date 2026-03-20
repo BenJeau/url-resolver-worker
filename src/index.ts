@@ -1,4 +1,4 @@
-import { extractUrl } from "./request";
+import { extractDebugFlag, extractUrl } from "./request";
 import { resolveUrl } from "./resolver";
 import { extractUserAgentType } from "./user-agent";
 import { getWorkerInfo } from "./worker";
@@ -8,6 +8,7 @@ export default {
     const url = new URL(request.url);
     const target = await extractUrl(request, url);
     const userAgentType = extractUserAgentType(url);
+    const debug = extractDebugFlag(url);
     if (!target) {
       return json(
         { error: "Provide a valid URL via '?url=' (GET) or via body (POST)." },
@@ -17,7 +18,7 @@ export default {
 
     try {
       const [workerInfo, result] = await Promise.all([
-        getWorkerInfo(request),
+        getWorkerInfo(request, debug),
         resolveUrl(target, userAgentType),
       ]);
       result["worker"] = workerInfo;

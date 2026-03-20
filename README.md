@@ -26,6 +26,12 @@ Optional platform-specific upstream user-agent pool:
 curl "https://<your-worker>.workers.dev?url=bit.ly/abc123&user-agent=ios"
 ```
 
+Optional debug mode to resolve and include worker egress IP (will check IP via AWS API):
+
+```bash
+curl "https://<your-worker>.workers.dev?url=bit.ly/abc123&debug=true"
+```
+
 ### POST with body
 
 Plain text:
@@ -44,6 +50,7 @@ curl -X POST "https://<your-worker>.workers.dev" \
 - Optional query param `user-agent` supports: `ios`, `android`, `mac`, `windows` (case-insensitive).
 - When `user-agent` is provided, one random User-Agent is selected from that platform list and reused for all upstream hops in that request.
 - When `user-agent` is missing or invalid, no User-Agent header is sent upstream.
+- Optional query param `debug=true` enables worker IP lookup; by default IP lookup is skipped.
 
 ## Response
 
@@ -73,7 +80,7 @@ Example shape:
     }
   ],
   "worker": {
-    "ip": "172.70.x.x",
+    "ip": null,
     "colo": "EWR",
     "country": "US",
     "city": "Newark",
@@ -93,6 +100,7 @@ Example shape:
 - Method used for hop fetches: `GET`
 - Optional upstream user agent pools selected via `?user-agent=<type>` (`ios`, `android`, `mac`, `windows`)
 - User-agent pools are pre-generated into `src/user-agent-pools.json` from Microlink's `user` list (`https://microlink.io/user-agents.json`)
+- Worker egress IP lookup is only executed when `?debug=true`; otherwise `worker.ip` is `null`.
 - Redirects are only followed while host remains equal to the initial normalized host
 - If next host is different, that URL becomes destination and traversal stops
 
@@ -103,6 +111,7 @@ Example shape:
 - `redirects_followed` is always less than or equal to `hops.length`.
 - `timing_ms`: total resolver duration.
 - `request_user_agent`: exact User-Agent sent upstream for this request, or `null` when no user-agent pool was selected.
+- `worker.ip`: resolved only when `debug=true`; otherwise `null`.
 
 ## Hop queue (`hops`) and `stop_reason`
 
@@ -129,10 +138,10 @@ Possible `stop_reason` values:
 
 The worker reads these runtime env vars from `wrangler.toml` `[vars]` (with defaults):
 
-| Variable              | Default                   | Description                                                 |
-| --------------------- | ------------------------- | ----------------------------------------------------------- |
-| `MAX_HOPS`            | `10`                      | Max number of hops before stopping with `max_hops_reached`. |
-| `UPSTREAM_TIMEOUT_MS` | `8000`                    | Per-hop timeout in milliseconds before `upstream_timeout`.  |
+| Variable              | Default | Description                                                 |
+| --------------------- | ------- | ----------------------------------------------------------- |
+| `MAX_HOPS`            | `10`    | Max number of hops before stopping with `max_hops_reached`. |
+| `UPSTREAM_TIMEOUT_MS` | `8000`  | Per-hop timeout in milliseconds before `upstream_timeout`.  |
 
 ## Error responses
 
