@@ -7,7 +7,6 @@ preview_urls = false
 [vars]
 MAX_HOPS = 10
 UPSTREAM_TIMEOUT_MS = 8000
-RESOLVER_USER_AGENT = "url-resolver/1.0"
 
 [observability]
 enabled = true
