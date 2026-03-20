@@ -1,6 +1,7 @@
 import { env } from "cloudflare:workers";
 
 import { NormalizedTarget } from "./request";
+import { selectRandomUserAgent, UserAgentType } from "./user-agent";
 import { WorkerInfo } from "./worker";
 
 type HeaderMap = Record<string, string>;
@@ -30,6 +31,7 @@ type ResolveResult = {
     extended: string;
     destination: string;
   };
+  request_user_agent: string | null;
   stop_reason: StopReason;
   redirects_followed: number;
   status: number;
@@ -42,7 +44,10 @@ function headersToObject(headers: Headers): HeaderMap {
   return Object.fromEntries(headers.entries());
 }
 
-async function fetchWithTimeout(input: RequestInfo | URL): Promise<Response> {
+async function fetchWithTimeout(
+  input: RequestInfo | URL,
+  userAgent: string | null,
+): Promise<Response> {
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), env.UPSTREAM_TIMEOUT_MS);
 
@@ -50,9 +55,7 @@ async function fetchWithTimeout(input: RequestInfo | URL): Promise<Response> {
     return await fetch(input, {
       method: "GET",
       redirect: "manual",
-      headers: {
-        "user-agent": env.RESOLVER_USER_AGENT,
-      },
+      headers: userAgent ? { "user-agent": userAgent } : undefined,
       signal: controller.signal,
     });
   } finally {
@@ -62,10 +65,12 @@ async function fetchWithTimeout(input: RequestInfo | URL): Promise<Response> {
 
 export async function resolveUrl(
   url: NormalizedTarget,
+  userAgentType: UserAgentType | null,
 ): Promise<ResolveResult> {
   const startedAt = performance.now();
   const hops: ResolveHop[] = [];
   const originHost = url.target.hostname.toLowerCase();
+  const selectedUserAgent = selectRandomUserAgent(userAgentType);
   let current = url.target;
   let redirectsFollowed = 0;
   let status = 0;
@@ -76,7 +81,7 @@ export async function resolveUrl(
     let response: Response;
 
     try {
-      response = await fetchWithTimeout(current.toString());
+      response = await fetchWithTimeout(current.toString(), selectedUserAgent);
     } catch (error) {
       if (error instanceof Error && error.name === "AbortError") {
         stopReason = "upstream_timeout";
@@ -155,6 +160,7 @@ export async function resolveUrl(
       extended: url.target.toString(),
       destination: current.toString(),
     },
+    request_user_agent: selectedUserAgent,
     stop_reason: stopReason,
     redirects_followed: redirectsFollowed,
     status,

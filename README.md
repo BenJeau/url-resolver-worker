@@ -20,6 +20,12 @@ Supported methods: `GET`, `POST`.
 curl "https://<your-worker>.workers.dev?url=bit.ly/abc123"
 ```
 
+Optional platform-specific upstream user-agent pool:
+
+```bash
+curl "https://<your-worker>.workers.dev?url=bit.ly/abc123&user-agent=ios"
+```
+
 ### POST with body
 
 Plain text:
@@ -35,6 +41,9 @@ curl -X POST "https://<your-worker>.workers.dev" \
 - Query param `url` is checked first.
 - If not provided, POST body is used.
 - If scheme is missing, `https://` is prepended.
+- Optional query param `user-agent` supports: `ios`, `android`, `mac`, `windows` (case-insensitive).
+- When `user-agent` is provided, one random User-Agent is selected from that platform list and reused for all upstream hops in that request.
+- When `user-agent` is missing or invalid, no User-Agent header is sent upstream.
 
 ## Response
 
@@ -47,6 +56,7 @@ Example shape:
     "extended": "https://bit.ly/abc123",
     "destination": "https://example.com/final-page"
   },
+  "request_user_agent": "Mozilla/5.0 (iPhone; CPU iPhone OS 17_5 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.5 Mobile/15E148 Safari/604.1",
   "stop_reason": "cross_domain_redirect",
   "redirects_followed": 1,
   "status": 301,
@@ -81,7 +91,8 @@ Example shape:
 - Maximum hops: configurable via `MAX_HOPS` (default `10`)
 - Per-hop upstream timeout: configurable via `UPSTREAM_TIMEOUT_MS` (default `8000`)
 - Method used for hop fetches: `GET`
-- Upstream user agent: configurable via `RESOLVER_USER_AGENT`
+- Optional upstream user agent pools selected via `?user-agent=<type>` (`ios`, `android`, `mac`, `windows`)
+- User-agent pools are pre-generated into `src/user-agent-pools.json` from Microlink's `user` list (`https://microlink.io/user-agents.json`)
 - Redirects are only followed while host remains equal to the initial normalized host
 - If next host is different, that URL becomes destination and traversal stops
 
@@ -91,6 +102,7 @@ Example shape:
 - `redirects_followed`: number of accepted same-host redirects.
 - `redirects_followed` is always less than or equal to `hops.length`.
 - `timing_ms`: total resolver duration.
+- `request_user_agent`: exact User-Agent sent upstream for this request, or `null` when no user-agent pool was selected.
 
 ## Hop queue (`hops`) and `stop_reason`
 
@@ -121,7 +133,6 @@ The worker reads these runtime env vars from `wrangler.toml` `[vars]` (with defa
 | --------------------- | ------------------------- | ----------------------------------------------------------- |
 | `MAX_HOPS`            | `10`                      | Max number of hops before stopping with `max_hops_reached`. |
 | `UPSTREAM_TIMEOUT_MS` | `8000`                    | Per-hop timeout in milliseconds before `upstream_timeout`.  |
-| `RESOLVER_USER_AGENT` | `url-resolver-worker/1.0` | User-Agent header sent on each upstream fetch.              |
 
 ## Error responses
 
@@ -170,8 +181,29 @@ curl -X POST "https://<your-worker>.workers.dev" \
 
 ```bash
 npm install
+npm run generate-user-agents
 npm run dev
 ```
+
+## Generate User-Agent Pools
+
+To refresh the static user-agent pools JSON from Microlink:
+
+```bash
+npm run generate-user-agents
+```
+
+This updates `src/user-agent-pools.json`. Runtime requests read this file directly (no per-request pool generation).
+
+## Generate Worker Types
+
+When you add or change Worker bindings/vars (for example in `wrangler.toml`), regenerate `worker-configuration.d.ts`:
+
+```bash
+npm run generate-types
+```
+
+This keeps the `Env` types in sync with runtime config and prevents stale type errors.
 
 ## Deploy
 

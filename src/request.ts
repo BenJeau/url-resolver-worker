@@ -14,12 +14,13 @@ function normalizeTarget(raw: string): NormalizedTarget | null {
 
 export async function extractUrl(
   request: Request,
+  url: URL,
 ): Promise<NormalizedTarget | null> {
   let extractedUrl = null;
   if (request.method === "POST") {
     extractedUrl = await request.text();
   } else {
-    extractedUrl = new URL(request.url).searchParams.get("url");
+    extractedUrl = url.searchParams.get("url");
   }
   if (!extractedUrl) return null;
   return normalizeTarget(extractedUrl.trim());
