@@ -146,6 +146,7 @@ The worker reads these runtime env vars from `wrangler.toml` `[vars]` (with defa
 ## Error responses
 
 - `400`: missing or invalid URL input/request
+- `405`: unsupported HTTP method (only `GET` and `POST` are accepted)
 - `502`: upstream resolve/fetch error
 
 ## Secure `workers.dev` with Cloudflare Access
@@ -192,6 +193,20 @@ curl -X POST "https://<your-worker>.workers.dev" \
 npm install
 npm run generate-user-agents
 npm run dev
+```
+
+## Testing
+
+Run the test suite with:
+
+```bash
+npm test
+```
+
+Run in watch mode while developing:
+
+```bash
+npm run test:watch
 ```
 
 ## Generate User-Agent Pools

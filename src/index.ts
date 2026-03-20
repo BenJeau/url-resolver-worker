@@ -5,6 +5,17 @@ import { getWorkerInfo } from "./worker";
 
 export default {
   async fetch(request: Request): Promise<Response> {
+    if (request.method !== "GET" && request.method !== "POST") {
+      return json(
+        {
+          error:
+            "Only GET and POST are supported. Use '?url=' for GET or plain text body for POST.",
+        },
+        405,
+        { allow: "GET, POST" },
+      );
+    }
+
     const url = new URL(request.url);
     const target = await extractUrl(request, url);
     const userAgentType = extractUserAgentType(url);
@@ -31,12 +42,17 @@ export default {
   },
 } satisfies ExportedHandler<Env>;
 
-function json<T>(data: T, status = 200): Response {
+function json<T>(
+  data: T,
+  status = 200,
+  extraHeaders: HeadersInit = {},
+): Response {
   return new Response(JSON.stringify(data, undefined, 2), {
     status,
     headers: {
       "content-type": "application/json; charset=utf-8",
       "cache-control": "no-store",
+      ...extraHeaders,
     },
   });
 }
