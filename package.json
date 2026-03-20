@@ -11,6 +11,8 @@
     "check": "generate-types && tsc --noEmit"
   },
   "devDependencies": {
-    "typescript": "^5.8.2"
+    "@cloudflare/vitest-pool-workers": "^0.13.3",
+    "typescript": "^5.8.2",
+    "vitest": "^4.1.0"
   }
 }
