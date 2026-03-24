@@ -23,6 +23,12 @@ type UserAgentRetryReason = "non_http_https_scheme" | "non_redirect_status";
 
 type AttemptedUserAgent = SelectedUserAgent & {
   retry_reason?: UserAgentRetryReason;
+  resolved_url?: string | null;
+};
+
+type UserAgentRetryDetails = {
+  reason: UserAgentRetryReason;
+  resolved_url: string | null;
 };
 
 type ResolveHop = {
@@ -71,20 +77,26 @@ function getUserAgentRetryReason(
   response: Response,
   currentUrl: URL,
   enforceHttpScheme: boolean,
-): UserAgentRetryReason | null {
+): UserAgentRetryDetails | null {
   const location = response.headers.get("location");
 
   if (location) {
     if (enforceHttpScheme) {
       const parsedLocation = resolveLocationUrl(location, currentUrl);
+      const resolvedUrl = parsedLocation?.toString() ?? null;
       if (!parsedLocation || !isHttpOrHttps(parsedLocation)) {
-        return "non_http_https_scheme";
+        return {
+          reason: "non_http_https_scheme",
+          resolved_url: resolvedUrl,
+        };
       }
     }
     return null;
   }
 
-  if (response.status === 200) return "non_redirect_status";
+  if (response.status === 200) {
+    return { reason: "non_redirect_status", resolved_url: null };
+  }
   return null;
 }
 
@@ -141,7 +153,7 @@ export async function resolveUrl(
           current.toString(),
           candidateUserAgent?.value ?? null,
         );
-        const retryReason =
+        const retryDetails =
           attempt < userAgentsToTry.length - 1
             ? getUserAgentRetryReason(
                 candidateResponse,
@@ -150,9 +162,10 @@ export async function resolveUrl(
               )
             : null;
 
-        if (retryReason) {
+        if (retryDetails) {
           if (attemptedUserAgent) {
-            attemptedUserAgent.retry_reason = retryReason;
+            attemptedUserAgent.retry_reason = retryDetails.reason;
+            attemptedUserAgent.resolved_url = retryDetails.resolved_url;
           }
           continue;
         }

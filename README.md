@@ -93,7 +93,8 @@ Example shape:
           {
             "type": "ios",
             "value": "Mozilla/5.0 (iPhone; CPU iPhone OS 17_5 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.5 Mobile/15E148 Safari/604.1",
-            "retry_reason": "non_redirect_status"
+            "retry_reason": "non_http_https_scheme",
+            "resolved_url": "myapp://open"
           },
           {
             "type": "android",
@@ -158,6 +159,9 @@ Each hop includes:
   - optional `retry_reason` when the resolver moved to the next user-agent:
     - `non_http_https_scheme`
     - `non_redirect_status`
+  - optional `resolved_url` captured for retry attempts:
+    - absolute URL if `Location` could be resolved (for example `myapp://open` or `https://...`)
+    - `null` when retry happened without a `Location` header (for example `non_redirect_status`)
 
 Possible `stop_reason` values:
 

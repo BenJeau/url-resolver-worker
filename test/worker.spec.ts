@@ -17,6 +17,7 @@ type ResolvePayload = {
         type: UserAgentType;
         value: string;
         retry_reason?: "non_http_https_scheme" | "non_redirect_status";
+        resolved_url?: string | null;
       }>;
     };
     next_url: string | null;
@@ -387,7 +388,12 @@ describe("url-resolver worker", () => {
       expect(payload.stop_reason).toBe("cross_domain_redirect");
       expect(payload.urls.destination).toBe("https://example.com/final");
       expect(payload.hops[0]?.request.user_agents).toEqual([
-        { type: "ios", value: ios, retry_reason: "non_redirect_status" },
+        {
+          type: "ios",
+          value: ios,
+          retry_reason: "non_redirect_status",
+          resolved_url: null,
+        },
         { type: "android", value: android },
       ]);
       expect(seenUserAgents).toEqual([ios, android]);
@@ -433,7 +439,12 @@ describe("url-resolver worker", () => {
       expect(payload.stop_reason).toBe("cross_domain_redirect");
       expect(payload.urls.destination).toBe("https://example.com/final");
       expect(payload.hops[0]?.request.user_agents).toEqual([
-        { type: "ios", value: ios, retry_reason: "non_http_https_scheme" },
+        {
+          type: "ios",
+          value: ios,
+          retry_reason: "non_http_https_scheme",
+          resolved_url: "myapp://open",
+        },
         { type: "android", value: android },
       ]);
       expect(seenUserAgents).toEqual([ios, android]);
