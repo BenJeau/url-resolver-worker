@@ -1,7 +1,11 @@
 import { env } from "cloudflare:workers";
 
 import { NormalizedTarget } from "./request";
-import { selectRandomUserAgent, UserAgentType } from "./user-agent";
+import {
+  selectRandomUserAgents,
+  SelectedUserAgent,
+  UserAgentType,
+} from "./user-agent";
 import { WorkerInfo } from "./worker";
 
 type HeaderMap = Record<string, string>;
@@ -15,10 +19,17 @@ type StopReason =
   | "max_hops_reached"
   | "upstream_timeout";
 
+type UserAgentRetryReason = "non_http_https_scheme" | "non_redirect_status";
+
+type AttemptedUserAgent = SelectedUserAgent & {
+  retry_reason?: UserAgentRetryReason;
+};
+
 type ResolveHop = {
-  index: number;
-  url: string;
-  host: string;
+  request: {
+    url: string;
+    user_agents?: AttemptedUserAgent[];
+  };
   next_url: string | null;
   status: number;
   timing_ms: number;
@@ -28,10 +39,10 @@ type ResolveHop = {
 type ResolveResult = {
   urls: {
     input: string;
-    extended: string;
+    normalized: string;
     destination: string;
   };
-  request_user_agent: string | null;
+  user_agent: SelectedUserAgent | null;
   stop_reason: StopReason;
   redirects_followed: number;
   status: number;
@@ -42,6 +53,39 @@ type ResolveResult = {
 
 function headersToObject(headers: Headers): HeaderMap {
   return Object.fromEntries(headers.entries());
+}
+
+function resolveLocationUrl(rawLocation: string, base: URL): URL | null {
+  try {
+    return new URL(rawLocation, base);
+  } catch {
+    return null;
+  }
+}
+
+function isHttpOrHttps(url: URL): boolean {
+  return url.protocol === "http:" || url.protocol === "https:";
+}
+
+function getUserAgentRetryReason(
+  response: Response,
+  currentUrl: URL,
+  enforceHttpScheme: boolean,
+): UserAgentRetryReason | null {
+  const location = response.headers.get("location");
+
+  if (location) {
+    if (enforceHttpScheme) {
+      const parsedLocation = resolveLocationUrl(location, currentUrl);
+      if (!parsedLocation || !isHttpOrHttps(parsedLocation)) {
+        return "non_http_https_scheme";
+      }
+    }
+    return null;
+  }
+
+  if (response.status === 200) return "non_redirect_status";
+  return null;
 }
 
 async function fetchWithTimeout(
@@ -65,70 +109,119 @@ async function fetchWithTimeout(
 
 export async function resolveUrl(
   url: NormalizedTarget,
-  userAgentType: UserAgentType | null,
+  userAgentTypes: UserAgentType[],
+  enforceHttpScheme = true,
 ): Promise<ResolveResult> {
   const startedAt = performance.now();
   const hops: ResolveHop[] = [];
   const originHost = url.target.hostname.toLowerCase();
-  const selectedUserAgent = selectRandomUserAgent(userAgentType);
+  const selectedUserAgents = selectRandomUserAgents(userAgentTypes);
+  const userAgentsToTry: Array<SelectedUserAgent | null> =
+    selectedUserAgents.length > 0 ? selectedUserAgents : [null];
   let current = url.target;
   let redirectsFollowed = 0;
   let status = 0;
+  let userAgent: SelectedUserAgent | null = null;
   let stopReason: StopReason = "max_hops_reached";
 
   for (let i = 0; i < env.MAX_HOPS; i += 1) {
     const hopStartedAt = performance.now();
-    let response: Response;
+    let response: Response | null = null;
+    const attemptedUserAgents: AttemptedUserAgent[] = [];
 
-    try {
-      response = await fetchWithTimeout(current.toString(), selectedUserAgent);
-    } catch (error) {
-      if (error instanceof Error && error.name === "AbortError") {
-        stopReason = "upstream_timeout";
-        status = 504;
-        hops.push({
-          index: i + 1,
-          url: current.toString(),
-          host: current.hostname,
-          next_url: null,
-          status: 504,
-          timing_ms: performance.now() - hopStartedAt,
-        });
+    for (let attempt = 0; attempt < userAgentsToTry.length; attempt += 1) {
+      const candidateUserAgent = userAgentsToTry[attempt];
+      const attemptedUserAgent: AttemptedUserAgent | null = candidateUserAgent
+        ? { type: candidateUserAgent.type, value: candidateUserAgent.value }
+        : null;
+      if (attemptedUserAgent) attemptedUserAgents.push(attemptedUserAgent);
+
+      try {
+        const candidateResponse = await fetchWithTimeout(
+          current.toString(),
+          candidateUserAgent?.value ?? null,
+        );
+        const retryReason =
+          attempt < userAgentsToTry.length - 1
+            ? getUserAgentRetryReason(
+                candidateResponse,
+                current,
+                enforceHttpScheme,
+              )
+            : null;
+
+        if (retryReason) {
+          if (attemptedUserAgent) {
+            attemptedUserAgent.retry_reason = retryReason;
+          }
+          continue;
+        }
+
+        response = candidateResponse;
+        userAgent = candidateUserAgent
+          ? { type: candidateUserAgent.type, value: candidateUserAgent.value }
+          : null;
         break;
+      } catch (error) {
+        if (error instanceof Error && error.name === "AbortError") {
+          stopReason = "upstream_timeout";
+          status = 504;
+          userAgent = candidateUserAgent
+            ? { type: candidateUserAgent.type, value: candidateUserAgent.value }
+            : null;
+          hops.push({
+            request: {
+              url: current.toString(),
+              user_agents:
+                attemptedUserAgents.length > 0
+                  ? attemptedUserAgents
+                  : undefined,
+            },
+            next_url: null,
+            status: 504,
+            timing_ms: performance.now() - hopStartedAt,
+          });
+          break;
+        }
+        throw error;
       }
+    }
 
-      throw error;
+    if (stopReason === "upstream_timeout") {
+      break;
+    }
+
+    if (!response) {
+      throw new Error(
+        "No upstream response available after user-agent attempts",
+      );
     }
 
     const hopTimingMs = performance.now() - hopStartedAt;
     const location = response.headers.get("location");
-    let nextUrl: string | null = null;
-    if (location) {
-      try {
-        nextUrl = new URL(location, current).toString();
-      } catch {
-        nextUrl = null;
-      }
-    }
+    const nextUrl = location
+      ? (resolveLocationUrl(location, current)?.toString() ?? null)
+      : null;
 
     status = response.status;
     hops.push({
-      index: i + 1,
-      url: current.toString(),
-      host: current.hostname,
+      request: {
+        url: current.toString(),
+        user_agents:
+          attemptedUserAgents.length > 0 ? attemptedUserAgents : undefined,
+      },
       next_url: nextUrl,
       status: response.status,
       timing_ms: hopTimingMs,
       response_headers: headersToObject(response.headers),
     });
 
-    if (response.status < 300 || response.status >= 400) {
-      stopReason = "non_redirect_status";
-      break;
-    }
-
     if (!location) {
-      stopReason = "missing_location_header";
+      if (response.status >= 300 && response.status < 400) {
+        stopReason = "missing_location_header";
+      } else {
+        stopReason = "non_redirect_status";
+      }
       break;
     }
 
@@ -157,10 +250,10 @@ export async function resolveUrl(
   return {
     urls: {
       input: url.raw,
-      extended: url.target.toString(),
+      normalized: url.target.toString(),
       destination: current.toString(),
     },
-    request_user_agent: selectedUserAgent,
+    user_agent: userAgent,
     stop_reason: stopReason,
     redirects_followed: redirectsFollowed,
     status,

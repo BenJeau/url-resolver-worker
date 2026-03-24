@@ -26,6 +26,18 @@ Optional platform-specific upstream user-agent pool:
 curl "https://<your-worker>.workers.dev?url=bit.ly/abc123&user-agent=ios"
 ```
 
+Optional comma-separated user-agent chain (tries in this order, until a valid `Location` is found):
+
+```bash
+curl "https://<your-worker>.workers.dev?url=bit.ly/abc123&user-agent=ios,android,windows"
+```
+
+Optional flag to disable `http`/`https` `Location` scheme enforcement for user-agent retries:
+
+```bash
+curl "https://<your-worker>.workers.dev?url=bit.ly/abc123&user-agent=ios,android&enforce-http-scheme=false"
+```
+
 Optional debug mode to resolve and include worker egress IP (will check IP via AWS API):
 
 ```bash
@@ -48,8 +60,10 @@ curl -X POST "https://<your-worker>.workers.dev" \
 - If not provided, POST body is used.
 - If scheme is missing, `https://` is prepended.
 - Optional query param `user-agent` supports: `ios`, `android`, `mac`, `windows` (case-insensitive).
-- When `user-agent` is provided, one random User-Agent is selected from that platform list and reused for all upstream hops in that request.
-- When `user-agent` is missing or invalid, no User-Agent header is sent upstream.
+- `user-agent` accepts a single type or a comma-separated ordered list (for example `?user-agent=ios,android`).
+- One random User-Agent string is selected for each provided platform type in order and reused across hops for that request.
+- Optional query param `enforce-http-scheme` defaults to `true`. When `true`, fallback retries continue until `Location` resolves to `http`/`https` (or the UA list is exhausted). Set `false` to allow any `Location` scheme.
+- When no valid user-agent types are provided, no User-Agent header is sent upstream.
 - Optional query param `debug=true` enables worker IP lookup; by default IP lookup is skipped.
 
 ## Response
@@ -60,19 +74,33 @@ Example shape:
 {
   "urls": {
     "input": "bit.ly/abc123",
-    "extended": "https://bit.ly/abc123",
+    "normalized": "https://bit.ly/abc123",
     "destination": "https://example.com/final-page"
   },
-  "request_user_agent": "Mozilla/5.0 (iPhone; CPU iPhone OS 17_5 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.5 Mobile/15E148 Safari/604.1",
+  "user_agent": {
+    "type": "android",
+    "value": "Mozilla/5.0 (Linux; Android 14; Pixel 8) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/125.0.0.0 Mobile Safari/537.36"
+  },
   "stop_reason": "cross_domain_redirect",
   "redirects_followed": 1,
   "status": 301,
   "timing_ms": 72.5,
   "hops": [
     {
-      "index": 1,
-      "url": "https://bit.ly/abc123",
-      "host": "bit.ly",
+      "request": {
+        "url": "https://bit.ly/abc123",
+        "user_agents": [
+          {
+            "type": "ios",
+            "value": "Mozilla/5.0 (iPhone; CPU iPhone OS 17_5 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.5 Mobile/15E148 Safari/604.1",
+            "retry_reason": "non_redirect_status"
+          },
+          {
+            "type": "android",
+            "value": "Mozilla/5.0 (Linux; Android 14; Pixel 8) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/125.0.0.0 Mobile Safari/537.36"
+          }
+        ]
+      },
       "next_url": "https://example.com/final-page",
       "status": 301,
       "timing_ms": 72.5,
@@ -98,11 +126,15 @@ Example shape:
 - Maximum hops: configurable via `MAX_HOPS` (default `10`)
 - Per-hop upstream timeout: configurable via `UPSTREAM_TIMEOUT_MS` (default `8000`)
 - Method used for hop fetches: `GET`
-- Optional upstream user agent pools selected via `?user-agent=<type>` (`ios`, `android`, `mac`, `windows`)
+- Optional upstream user agent pool/chain via `?user-agent=<type>` or `?user-agent=<type1,type2,...>` (same type set)
 - User-agent pools are pre-generated into `src/user-agent-pools.json` from Microlink's `user` list (`https://microlink.io/user-agents.json`)
 - Worker egress IP lookup is only executed when `?debug=true`; otherwise `worker.ip` is `null`.
 - Redirects are only followed while host remains equal to the initial normalized host
 - If next host is different, that URL becomes destination and traversal stops
+- If `Location` header exists and can be parsed, resolver follows it regardless of status code
+- For each hop, resolver can retry with the next UA in chain when:
+  - status is `200` and `Location` is missing
+  - `Location` does not resolve to `http`/`https` and `enforce-http-scheme=true` (default)
 
 ### Interpreting top-level fields (verbose/full mode)
 
@@ -110,24 +142,34 @@ Example shape:
 - `redirects_followed`: number of accepted same-host redirects.
 - `redirects_followed` is always less than or equal to `hops.length`.
 - `timing_ms`: total resolver duration.
-- `request_user_agent`: exact User-Agent sent upstream for this request, or `null` when no user-agent pool was selected.
+- `user_agent`: object for the last successful user-agent attempt, containing `type` (`ios`, `android`, `mac`, `windows`) and header `value`; `null` when no user-agent was used.
 - `worker.ip`: resolved only when `debug=true`; otherwise `null`.
 
 ## Hop queue (`hops`) and `stop_reason`
 
-`hops` is an ordered queue of resolution attempts, with 1-based `index` for readability.
+`hops` is an ordered queue of resolution attempts.
+
+Each hop includes:
+
+- `request.url`: upstream URL requested for that hop.
+- `request.user_agents`: ordered User-Agents attempted for that hop, in first-to-last attempt order, each with:
+  - `type`
+  - raw header `value`
+  - optional `retry_reason` when the resolver moved to the next user-agent:
+    - `non_http_https_scheme`
+    - `non_redirect_status`
 
 Possible `stop_reason` values:
 
-| `stop_reason`             | Meaning                                                               |
-| ------------------------- | --------------------------------------------------------------------- |
-| `non_redirect_status`     | Last hop was not 3xx (for example `200`, `404`).                      |
-| `missing_location_header` | Hop was 3xx but had no `Location` header.                             |
-| `invalid_location_header` | `Location` existed but could not be parsed into a valid absolute URL. |
-| `same_url_redirect`       | Redirect target is exactly the same URL as the current hop.           |
-| `cross_domain_redirect`   | Redirect target host differs from the original host.                  |
-| `max_hops_reached`        | Reached hop limit before another terminal condition.                  |
-| `upstream_timeout`        | Upstream request exceeded the per-hop timeout.                        |
+| `stop_reason`             | Meaning                                                                    |
+| ------------------------- | -------------------------------------------------------------------------- |
+| `non_redirect_status`     | Last hop was not redirectable after UA retries (for example `200`, `404`). |
+| `missing_location_header` | Hop was 3xx but had no `Location` header.                                  |
+| `invalid_location_header` | `Location` existed but could not be parsed into a valid absolute URL.      |
+| `same_url_redirect`       | Redirect target is exactly the same URL as the current hop.                |
+| `cross_domain_redirect`   | Redirect target host differs from the original host.                       |
+| `max_hops_reached`        | Reached hop limit before another terminal condition.                       |
+| `upstream_timeout`        | Upstream request exceeded the per-hop timeout.                             |
 
 ## Security controls built in
 

@@ -1,6 +1,10 @@
-import { extractDebugFlag, extractUrl } from "./request";
+import {
+  extractDebugFlag,
+  extractEnforceHttpSchemeFlag,
+  extractUrl,
+} from "./request";
 import { resolveUrl } from "./resolver";
-import { extractUserAgentType } from "./user-agent";
+import { extractUserAgentTypes } from "./user-agent";
 import { getWorkerInfo } from "./worker";
 
 export default {
@@ -18,8 +22,9 @@ export default {
 
     const url = new URL(request.url);
     const target = await extractUrl(request, url);
-    const userAgentType = extractUserAgentType(url);
+    const userAgentTypes = extractUserAgentTypes(url);
     const debug = extractDebugFlag(url);
+    const enforceHttpScheme = extractEnforceHttpSchemeFlag(url);
     if (!target) {
       return json(
         { error: "Provide a valid URL via '?url=' (GET) or via body (POST)." },
@@ -30,7 +35,7 @@ export default {
     try {
       const [workerInfo, result] = await Promise.all([
         getWorkerInfo(request, debug),
-        resolveUrl(target, userAgentType),
+        resolveUrl(target, userAgentTypes, enforceHttpScheme),
       ]);
       result["worker"] = workerInfo;
       return json(result, 200);

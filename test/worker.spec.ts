@@ -5,15 +5,20 @@ import { SELF } from "cloudflare:test";
 
 type UpstreamHandler = (request: Request) => Response | Promise<Response>;
 type ResolvePayload = {
-  urls: { input: string; extended: string; destination: string };
-  request_user_agent: string | null;
+  urls: { input: string; normalized: string; destination: string };
+  user_agent: { type: UserAgentType; value: string } | null;
   stop_reason: string;
   redirects_followed: number;
   status: number;
   hops: Array<{
-    index: number;
-    url: string;
-    host: string;
+    request: {
+      url: string;
+      user_agents?: Array<{
+        type: UserAgentType;
+        value: string;
+        retry_reason?: "non_http_https_scheme" | "non_redirect_status";
+      }>;
+    };
     next_url: string | null;
     status: number;
   }>;
@@ -84,7 +89,7 @@ describe("url-resolver worker", () => {
 
       expect(response.status).toBe(200);
       expect(payload.urls.input).toBe("from-query.test");
-      expect(payload.urls.extended).toBe("https://from-query.test/");
+      expect(payload.urls.normalized).toBe("https://from-query.test/");
       expect(fetchMock).toHaveBeenCalledTimes(1);
     });
 
@@ -102,7 +107,7 @@ describe("url-resolver worker", () => {
 
       expect(response.status).toBe(200);
       expect(payload.urls.input).toBe("from-post.test/path");
-      expect(payload.urls.extended).toBe("https://from-post.test/path");
+      expect(payload.urls.normalized).toBe("https://from-post.test/path");
       expect(fetchMock).toHaveBeenCalledTimes(1);
     });
 
@@ -331,12 +336,200 @@ describe("url-resolver worker", () => {
         const expected = userAgentPools[userAgentType][0];
 
         expect(response.status).toBe(200);
-        expect(payload.request_user_agent).toBe(expected);
+        expect(payload.user_agent).toEqual({
+          type: userAgentType,
+          value: expected,
+        });
+        expect(payload.hops[0]?.request.user_agents).toEqual([
+          { type: userAgentType, value: expected },
+        ]);
+        expect(payload.hops[1]?.request.user_agents).toEqual([
+          { type: userAgentType, value: expected },
+        ]);
         expect(requestUserAgents).toEqual([expected, expected]);
       },
     );
 
-    it("returns null request_user_agent when user-agent param is invalid", async () => {
+    it("tries ordered user-agent values when 200 has no location", async () => {
+      const ios = userAgentPools.ios[0];
+      const android = userAgentPools.android[0];
+      const seenUserAgents: string[] = [];
+
+      installUpstreamMock({
+        "https://ua-chain.test/start": (request) => {
+          const requestUserAgent = request.headers.get("user-agent");
+          if (requestUserAgent) seenUserAgents.push(requestUserAgent);
+
+          if (requestUserAgent === ios) {
+            return new Response("landing page", { status: 200 });
+          }
+
+          if (requestUserAgent === android) {
+            return new Response(null, {
+              status: 302,
+              headers: { location: "https://example.com/final" },
+            });
+          }
+
+          throw new Error(`Unexpected user-agent: ${requestUserAgent}`);
+        },
+      });
+
+      vi.spyOn(Math, "random").mockReturnValue(0);
+
+      const response = await SELF.fetch(
+        "https://resolver.test/?url=ua-chain.test/start&user-agent=ios,android",
+      );
+      const payload = await response.json<ResolvePayload>();
+
+      expect(response.status).toBe(200);
+      expect(payload.user_agent).toEqual({ type: "android", value: android });
+      expect(payload.stop_reason).toBe("cross_domain_redirect");
+      expect(payload.urls.destination).toBe("https://example.com/final");
+      expect(payload.hops[0]?.request.user_agents).toEqual([
+        { type: "ios", value: ios, retry_reason: "non_redirect_status" },
+        { type: "android", value: android },
+      ]);
+      expect(seenUserAgents).toEqual([ios, android]);
+    });
+
+    it("tries next user-agent when location scheme is not http/https", async () => {
+      const ios = userAgentPools.ios[0];
+      const android = userAgentPools.android[0];
+      const seenUserAgents: string[] = [];
+
+      installUpstreamMock({
+        "https://scheme-chain.test/start": (request) => {
+          const requestUserAgent = request.headers.get("user-agent");
+          if (requestUserAgent) seenUserAgents.push(requestUserAgent);
+
+          if (requestUserAgent === ios) {
+            return new Response(null, {
+              status: 302,
+              headers: { location: "myapp://open" },
+            });
+          }
+
+          if (requestUserAgent === android) {
+            return new Response(null, {
+              status: 302,
+              headers: { location: "https://example.com/final" },
+            });
+          }
+
+          throw new Error(`Unexpected user-agent: ${requestUserAgent}`);
+        },
+      });
+
+      vi.spyOn(Math, "random").mockReturnValue(0);
+
+      const response = await SELF.fetch(
+        "https://resolver.test/?url=scheme-chain.test/start&user-agent=ios,android",
+      );
+      const payload = await response.json<ResolvePayload>();
+
+      expect(response.status).toBe(200);
+      expect(payload.user_agent).toEqual({ type: "android", value: android });
+      expect(payload.stop_reason).toBe("cross_domain_redirect");
+      expect(payload.urls.destination).toBe("https://example.com/final");
+      expect(payload.hops[0]?.request.user_agents).toEqual([
+        { type: "ios", value: ios, retry_reason: "non_http_https_scheme" },
+        { type: "android", value: android },
+      ]);
+      expect(seenUserAgents).toEqual([ios, android]);
+    });
+
+    it("allows non-http location schemes when enforcement is disabled", async () => {
+      const ios = userAgentPools.ios[0];
+      const android = userAgentPools.android[0];
+      const seenUserAgents: string[] = [];
+
+      installUpstreamMock({
+        "https://scheme-optional.test/start": (request) => {
+          const requestUserAgent = request.headers.get("user-agent");
+          if (requestUserAgent) seenUserAgents.push(requestUserAgent);
+
+          if (requestUserAgent === ios) {
+            return new Response(null, {
+              status: 302,
+              headers: { location: "myapp://open" },
+            });
+          }
+
+          if (requestUserAgent === android) {
+            return new Response(null, {
+              status: 302,
+              headers: { location: "https://example.com/final" },
+            });
+          }
+
+          throw new Error(`Unexpected user-agent: ${requestUserAgent}`);
+        },
+      });
+
+      vi.spyOn(Math, "random").mockReturnValue(0);
+
+      const response = await SELF.fetch(
+        "https://resolver.test/?url=scheme-optional.test/start&user-agent=ios,android&enforce-http-scheme=false",
+      );
+      const payload = await response.json<ResolvePayload>();
+
+      expect(response.status).toBe(200);
+      expect(payload.user_agent).toEqual({ type: "ios", value: ios });
+      expect(payload.stop_reason).toBe("cross_domain_redirect");
+      expect(payload.urls.destination).toBe("myapp://open");
+      expect(payload.hops[0]?.request.user_agents).toEqual([
+        { type: "ios", value: ios },
+      ]);
+      expect(seenUserAgents).toEqual([ios]);
+    });
+
+    it("follows location even when status is non-3xx", async () => {
+      const ios = userAgentPools.ios[0];
+      const android = userAgentPools.android[0];
+      const seenUserAgents: string[] = [];
+
+      installUpstreamMock({
+        "https://status-chain.test/start": (request) => {
+          const requestUserAgent = request.headers.get("user-agent");
+          if (requestUserAgent) seenUserAgents.push(requestUserAgent);
+
+          if (requestUserAgent === ios) {
+            return new Response("not found", {
+              status: 404,
+              headers: { location: "https://example.com/final" },
+            });
+          }
+
+          if (requestUserAgent === android) {
+            return new Response(null, {
+              status: 302,
+              headers: { location: "https://example.com/final" },
+            });
+          }
+
+          throw new Error(`Unexpected user-agent: ${requestUserAgent}`);
+        },
+      });
+
+      vi.spyOn(Math, "random").mockReturnValue(0);
+
+      const response = await SELF.fetch(
+        "https://resolver.test/?url=status-chain.test/start&user-agent=ios,android",
+      );
+      const payload = await response.json<ResolvePayload>();
+
+      expect(response.status).toBe(200);
+      expect(payload.user_agent).toEqual({ type: "ios", value: ios });
+      expect(payload.stop_reason).toBe("cross_domain_redirect");
+      expect(payload.urls.destination).toBe("https://example.com/final");
+      expect(payload.hops[0]?.request.user_agents).toEqual([
+        { type: "ios", value: ios },
+      ]);
+      expect(seenUserAgents).toEqual([ios]);
+    });
+
+    it("returns null user_agent when user-agent param is invalid", async () => {
       installUpstreamMock({
         "https://ua-invalid.test/": () => new Response("ok", { status: 200 }),
       });
@@ -347,10 +540,10 @@ describe("url-resolver worker", () => {
       const payload = await response.json<ResolvePayload>();
 
       expect(response.status).toBe(200);
-      expect(payload.request_user_agent).toBeNull();
+      expect(payload.user_agent).toBeNull();
     });
 
-    it("returns null request_user_agent when user-agent param is missing", async () => {
+    it("returns null user_agent when user-agent param is missing", async () => {
       installUpstreamMock({
         "https://ua-missing.test/": () => new Response("ok", { status: 200 }),
       });
@@ -361,7 +554,7 @@ describe("url-resolver worker", () => {
       const payload = await response.json<ResolvePayload>();
 
       expect(response.status).toBe(200);
-      expect(payload.request_user_agent).toBeNull();
+      expect(payload.user_agent).toBeNull();
     });
   });
 
