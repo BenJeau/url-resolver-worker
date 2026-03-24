@@ -280,3 +280,7 @@ This keeps the `Env` types in sync with runtime config and prevents stale type e
 ```bash
 wrangler deploy
 ```
+
+## License
+
+This project is licensed under the terms of the [MIT License](LICENSE)
