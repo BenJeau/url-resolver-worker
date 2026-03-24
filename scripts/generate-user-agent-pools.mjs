@@ -21,14 +21,14 @@ function buildPools(userAgents) {
   const pools = {
     ios: [],
     android: [],
-    mac: [],
+    macos: [],
     windows: [],
   };
 
   const seenByType = {
     ios: new Set(),
     android: new Set(),
-    mac: new Set(),
+    macos: new Set(),
     windows: new Set(),
   };
 
@@ -45,7 +45,7 @@ function buildPools(userAgents) {
     if (isIos) addUnique(pools.ios, seenByType.ios, userAgent);
     if (isAndroid) addUnique(pools.android, seenByType.android, userAgent);
     if (isWindows) addUnique(pools.windows, seenByType.windows, userAgent);
-    if (isMac && !isIos) addUnique(pools.mac, seenByType.mac, userAgent);
+    if (isMac && !isIos) addUnique(pools.macos, seenByType.macos, userAgent);
   }
 
   return pools;
@@ -78,7 +78,7 @@ async function main() {
 
   console.log(`Wrote ${outputPath}`);
   console.log(
-    `ios=${pools.ios.length} android=${pools.android.length} mac=${pools.mac.length} windows=${pools.windows.length}`,
+    `ios=${pools.ios.length} android=${pools.android.length} macos=${pools.macos.length} windows=${pools.windows.length}`,
   );
 }
 

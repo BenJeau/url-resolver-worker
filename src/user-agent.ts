@@ -1,6 +1,6 @@
 import userAgentPoolsFile from "./user-agent-pools.json";
 
-export const USER_AGENT_TYPES = ["ios", "android", "mac", "windows"] as const;
+export const USER_AGENT_TYPES = ["ios", "android", "macos", "windows"] as const;
 export type UserAgentType = (typeof USER_AGENT_TYPES)[number];
 export type SelectedUserAgent = { type: UserAgentType; value: string };
 
