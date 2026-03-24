@@ -59,7 +59,7 @@ curl -X POST "https://<your-worker>.workers.dev" \
 - Query param `url` is checked first.
 - If not provided, POST body is used.
 - If scheme is missing, `https://` is prepended.
-- Optional query param `user-agent` supports: `ios`, `android`, `mac`, `windows` (case-insensitive).
+- Optional query param `user-agent` supports: `ios`, `android`, `macos`, `windows` (case-insensitive).
 - `user-agent` accepts a single type or a comma-separated ordered list (for example `?user-agent=ios,android`).
 - One random User-Agent string is selected for each provided platform type in order and reused across hops for that request.
 - Optional query param `enforce-http-scheme` defaults to `true`. When `true`, fallback retries continue until `Location` resolves to `http`/`https` (or the UA list is exhausted). Set `false` to allow any `Location` scheme.
@@ -143,7 +143,7 @@ Example shape:
 - `redirects_followed`: number of accepted same-host redirects.
 - `redirects_followed` is always less than or equal to `hops.length`.
 - `timing_ms`: total resolver duration.
-- `user_agent`: object for the last successful user-agent attempt, containing `type` (`ios`, `android`, `mac`, `windows`) and header `value`; `null` when no user-agent was used.
+- `user_agent`: object for the last successful user-agent attempt, containing `type` (`ios`, `android`, `macos`, `windows`) and header `value`; `null` when no user-agent was used.
 - `worker.ip`: resolved only when `debug=true`; otherwise `null`.
 
 ## Hop queue (`hops`) and `stop_reason`
