@@ -3,7 +3,7 @@ import userAgentPoolsFile from "./user-agent-pools.json";
 export const USER_AGENT_HEADER_TYPES = [
   "ios",
   "android",
-  "mac",
+  "macos",
   "windows",
 ] as const;
 export const USER_AGENT_TYPES = [...USER_AGENT_HEADER_TYPES, "none"] as const;

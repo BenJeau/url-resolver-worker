@@ -19,7 +19,10 @@ type StopReason =
   | "max_hops_reached"
   | "upstream_timeout";
 
-type UserAgentRetryReason = "non_http_https_scheme" | "non_redirect_status";
+type UserAgentRetryReason =
+  | "app_store_redirect"
+  | "non_http_https_scheme"
+  | "non_redirect_status";
 
 type AttemptedUserAgent = SelectedUserAgent & {
   retry_reason?: UserAgentRetryReason;
@@ -57,6 +60,14 @@ type ResolveResult = {
   hops: ResolveHop[];
 };
 
+const APP_STORE_HOSTNAMES = new Set([
+  "play.google.com",
+  "market.android.com",
+  "apps.apple.com",
+  "itunes.apple.com",
+]);
+const MOBILE_USER_AGENTS = new Set(["ios", "android"]);
+
 function headersToObject(headers: Headers): HeaderMap {
   return Object.fromEntries(headers.entries());
 }
@@ -73,17 +84,40 @@ function isHttpOrHttps(url: URL): boolean {
   return url.protocol === "http:" || url.protocol === "https:";
 }
 
+function isMobileUserAgentType(userAgentType: UserAgentType): boolean {
+  return MOBILE_USER_AGENTS.has(userAgentType);
+}
+
+function isAppStoreRedirectUrl(url: URL): boolean {
+  if (!isHttpOrHttps(url)) return false;
+  return APP_STORE_HOSTNAMES.has(url.hostname.toLowerCase());
+}
+
 function getUserAgentRetryReason(
   response: Response,
   currentUrl: URL,
+  userAgentType: UserAgentType | undefined,
   enforceHttpScheme: boolean,
 ): UserAgentRetryDetails | null {
   const location = response.headers.get("location");
 
   if (location) {
+    const parsedLocation = resolveLocationUrl(location, currentUrl);
+    const resolvedUrl = parsedLocation?.toString() ?? null;
+
+    if (
+      parsedLocation &&
+      userAgentType &&
+      isMobileUserAgentType(userAgentType) &&
+      isAppStoreRedirectUrl(parsedLocation)
+    ) {
+      return {
+        reason: "app_store_redirect",
+        resolved_url: resolvedUrl,
+      };
+    }
+
     if (enforceHttpScheme) {
-      const parsedLocation = resolveLocationUrl(location, currentUrl);
-      const resolvedUrl = parsedLocation?.toString() ?? null;
       if (!parsedLocation || !isHttpOrHttps(parsedLocation)) {
         return {
           reason: "non_http_https_scheme",
@@ -158,6 +192,7 @@ export async function resolveUrl(
             ? getUserAgentRetryReason(
                 candidateResponse,
                 current,
+                candidateUserAgent?.type,
                 enforceHttpScheme,
               )
             : null;

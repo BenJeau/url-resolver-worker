@@ -142,6 +142,7 @@ Example shape:
 - If `Location` header exists and can be parsed, resolver follows it regardless of status code
 - For each hop, resolver can retry with the next UA in chain when:
   - status is `200` and `Location` is missing
+  - active UA is `ios` or `android` and `Location` resolves to App Store / Play Store link
   - `Location` does not resolve to `http`/`https` and `enforce-http-scheme=true` (default)
 
 ### Interpreting top-level fields (verbose/full mode)
@@ -164,6 +165,7 @@ Each hop includes:
   - `type`
   - raw header `value` (`null` for `type=none`)
   - optional `retry_reason` when the resolver moved to the next user-agent:
+    - `app_store_redirect`
     - `non_http_https_scheme`
     - `non_redirect_status`
   - optional `resolved_url` captured for retry attempts:

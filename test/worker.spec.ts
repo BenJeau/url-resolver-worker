@@ -16,7 +16,10 @@ type ResolvePayload = {
       user_agents?: Array<{
         type: UserAgentType;
         value: string | null;
-        retry_reason?: "non_http_https_scheme" | "non_redirect_status";
+        retry_reason?:
+          | "app_store_redirect"
+          | "non_http_https_scheme"
+          | "non_redirect_status";
         resolved_url?: string | null;
       }>;
     };
@@ -467,7 +470,12 @@ describe("url-resolver worker", () => {
       expect(payload.stop_reason).toBe("cross_domain_redirect");
       expect(payload.urls.destination).toBe("https://example.com/final");
       expect(payload.hops[0]?.request.user_agents).toEqual([
-        { type: "ios", value: ios, retry_reason: "non_redirect_status" },
+        {
+          type: "ios",
+          value: ios,
+          retry_reason: "non_redirect_status",
+          resolved_url: null,
+        },
         { type: "none", value: null },
       ]);
       expect(requestUserAgents).toEqual([ios, null]);
@@ -518,6 +526,114 @@ describe("url-resolver worker", () => {
           value: ios,
           retry_reason: "non_http_https_scheme",
           resolved_url: "myapp://open",
+        },
+        { type: "android", value: android },
+      ]);
+      expect(seenUserAgents).toEqual([ios, android]);
+    });
+
+    it("tries next user-agent when android gets redirected to Google Play", async () => {
+      const ios = userAgentPools.ios[0];
+      const android = userAgentPools.android[0];
+      const seenUserAgents: string[] = [];
+
+      installUpstreamMock({
+        "https://store-chain-play.test/start": (request) => {
+          const requestUserAgent = request.headers.get("user-agent");
+          if (requestUserAgent) seenUserAgents.push(requestUserAgent);
+
+          if (requestUserAgent === android) {
+            return new Response(null, {
+              status: 302,
+              headers: {
+                location:
+                  "https://play.google.com/store/apps/details?id=com.example.app",
+              },
+            });
+          }
+
+          if (requestUserAgent === ios) {
+            return new Response(null, {
+              status: 302,
+              headers: { location: "https://example.com/final" },
+            });
+          }
+
+          throw new Error(`Unexpected user-agent: ${requestUserAgent}`);
+        },
+      });
+
+      vi.spyOn(Math, "random").mockReturnValue(0);
+
+      const response = await SELF.fetch(
+        "https://resolver.test/?url=store-chain-play.test/start&user-agent=android,ios",
+      );
+      const payload = await response.json<ResolvePayload>();
+
+      expect(response.status).toBe(200);
+      expect(payload.user_agent).toEqual({ type: "ios", value: ios });
+      expect(payload.stop_reason).toBe("cross_domain_redirect");
+      expect(payload.urls.destination).toBe("https://example.com/final");
+      expect(payload.hops[0]?.request.user_agents).toEqual([
+        {
+          type: "android",
+          value: android,
+          retry_reason: "app_store_redirect",
+          resolved_url:
+            "https://play.google.com/store/apps/details?id=com.example.app",
+        },
+        { type: "ios", value: ios },
+      ]);
+      expect(seenUserAgents).toEqual([android, ios]);
+    });
+
+    it("tries next user-agent when ios gets redirected to Apple App Store", async () => {
+      const ios = userAgentPools.ios[0];
+      const android = userAgentPools.android[0];
+      const seenUserAgents: string[] = [];
+
+      installUpstreamMock({
+        "https://store-chain-ios.test/start": (request) => {
+          const requestUserAgent = request.headers.get("user-agent");
+          if (requestUserAgent) seenUserAgents.push(requestUserAgent);
+
+          if (requestUserAgent === ios) {
+            return new Response(null, {
+              status: 302,
+              headers: {
+                location: "https://apps.apple.com/us/app/example/id123456789",
+              },
+            });
+          }
+
+          if (requestUserAgent === android) {
+            return new Response(null, {
+              status: 302,
+              headers: { location: "https://example.com/final" },
+            });
+          }
+
+          throw new Error(`Unexpected user-agent: ${requestUserAgent}`);
+        },
+      });
+
+      vi.spyOn(Math, "random").mockReturnValue(0);
+
+      const response = await SELF.fetch(
+        "https://resolver.test/?url=store-chain-ios.test/start&user-agent=ios,android",
+      );
+      const payload: ResolvePayload = await response.json<ResolvePayload>();
+
+      expect(response.status).toBe(200);
+      expect(payload.user_agent).toEqual({ type: "android", value: android });
+      expect(payload.stop_reason).toBe("cross_domain_redirect");
+      expect(payload.urls.destination).toBe("https://example.com/final");
+      expect(payload.hops[0]?.request.user_agents).toEqual([
+        {
+          type: "ios",
+          value: ios,
+          retry_reason: "app_store_redirect",
+          resolved_url: "https://apps.apple.com/us/app/example/id123456789",
         },
         { type: "android", value: android },
       ]);
