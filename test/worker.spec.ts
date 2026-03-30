@@ -1,12 +1,12 @@
 import userAgentPoolsFile from "../src/user-agent-pools.json";
-import { USER_AGENT_TYPES, type UserAgentType } from "../src/user-agent";
+import { USER_AGENT_HEADER_TYPES, type UserAgentType } from "../src/user-agent";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { SELF } from "cloudflare:test";
 
 type UpstreamHandler = (request: Request) => Response | Promise<Response>;
 type ResolvePayload = {
   urls: { input: string; normalized: string; destination: string };
-  user_agent: { type: UserAgentType; value: string } | null;
+  user_agent: { type: UserAgentType; value: string | null } | null;
   stop_reason: string;
   redirects_followed: number;
   status: number;
@@ -15,7 +15,7 @@ type ResolvePayload = {
       url: string;
       user_agents?: Array<{
         type: UserAgentType;
-        value: string;
+        value: string | null;
         retry_reason?: "non_http_https_scheme" | "non_redirect_status";
         resolved_url?: string | null;
       }>;
@@ -27,7 +27,7 @@ type ResolvePayload = {
 };
 
 const userAgentPools = userAgentPoolsFile.pools as Record<
-  UserAgentType,
+  Exclude<UserAgentType, "none">,
   string[]
 >;
 
@@ -310,7 +310,7 @@ describe("url-resolver worker", () => {
   });
 
   describe("user-agent", () => {
-    it.each(USER_AGENT_TYPES)(
+    it.each(USER_AGENT_HEADER_TYPES)(
       "selects and reuses a %s user agent across hops",
       async (userAgentType) => {
         const requestUserAgents: Array<string | null> = [];
@@ -350,6 +350,38 @@ describe("url-resolver worker", () => {
         expect(requestUserAgents).toEqual([expected, expected]);
       },
     );
+
+    it("uses the explicit none user-agent type with no header", async () => {
+      const requestUserAgents: Array<string | null> = [];
+      installUpstreamMock({
+        "https://ua-none.test/start": (request) => {
+          requestUserAgents.push(request.headers.get("user-agent"));
+          return new Response(null, {
+            status: 302,
+            headers: { location: "/done" },
+          });
+        },
+        "https://ua-none.test/done": (request) => {
+          requestUserAgents.push(request.headers.get("user-agent"));
+          return new Response("ok", { status: 200 });
+        },
+      });
+
+      const response = await SELF.fetch(
+        "https://resolver.test/?url=ua-none.test/start&user-agent=none",
+      );
+      const payload = await response.json<ResolvePayload>();
+
+      expect(response.status).toBe(200);
+      expect(payload.user_agent).toEqual({ type: "none", value: null });
+      expect(payload.hops[0]?.request.user_agents).toEqual([
+        { type: "none", value: null },
+      ]);
+      expect(payload.hops[1]?.request.user_agents).toEqual([
+        { type: "none", value: null },
+      ]);
+      expect(requestUserAgents).toEqual([null, null]);
+    });
 
     it("tries ordered user-agent values when 200 has no location", async () => {
       const ios = userAgentPools.ios[0];
@@ -397,6 +429,48 @@ describe("url-resolver worker", () => {
         { type: "android", value: android },
       ]);
       expect(seenUserAgents).toEqual([ios, android]);
+    });
+
+    it("can retry with no header as part of an ordered user-agent chain", async () => {
+      const ios = userAgentPools.ios[0];
+      const requestUserAgents: Array<string | null> = [];
+
+      installUpstreamMock({
+        "https://ua-chain-none.test/start": (request) => {
+          const requestUserAgent = request.headers.get("user-agent");
+          requestUserAgents.push(requestUserAgent);
+
+          if (requestUserAgent === ios) {
+            return new Response("landing page", { status: 200 });
+          }
+
+          if (requestUserAgent === null) {
+            return new Response(null, {
+              status: 302,
+              headers: { location: "https://example.com/final" },
+            });
+          }
+
+          throw new Error(`Unexpected user-agent: ${requestUserAgent}`);
+        },
+      });
+
+      vi.spyOn(Math, "random").mockReturnValue(0);
+
+      const response = await SELF.fetch(
+        "https://resolver.test/?url=ua-chain-none.test/start&user-agent=ios,none,android",
+      );
+      const payload = await response.json<ResolvePayload>();
+
+      expect(response.status).toBe(200);
+      expect(payload.user_agent).toEqual({ type: "none", value: null });
+      expect(payload.stop_reason).toBe("cross_domain_redirect");
+      expect(payload.urls.destination).toBe("https://example.com/final");
+      expect(payload.hops[0]?.request.user_agents).toEqual([
+        { type: "ios", value: ios, retry_reason: "non_redirect_status" },
+        { type: "none", value: null },
+      ]);
+      expect(requestUserAgents).toEqual([ios, null]);
     });
 
     it("tries next user-agent when location scheme is not http/https", async () => {

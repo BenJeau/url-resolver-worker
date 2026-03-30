@@ -1,8 +1,14 @@
 import userAgentPoolsFile from "./user-agent-pools.json";
 
-export const USER_AGENT_TYPES = ["ios", "android", "macos", "windows"] as const;
+export const USER_AGENT_HEADER_TYPES = [
+  "ios",
+  "android",
+  "mac",
+  "windows",
+] as const;
+export const USER_AGENT_TYPES = [...USER_AGENT_HEADER_TYPES, "none"] as const;
 export type UserAgentType = (typeof USER_AGENT_TYPES)[number];
-export type SelectedUserAgent = { type: UserAgentType; value: string };
+export type SelectedUserAgent = { type: UserAgentType; value: string | null };
 
 const USER_AGENT_TYPE_SET: ReadonlySet<string> = new Set(USER_AGENT_TYPES);
 
@@ -19,9 +25,12 @@ export function extractUserAgentTypes(url: URL): UserAgentType[] {
 }
 
 function selectRandomUserAgent(
-  userAgentType: UserAgentType | null,
-): SelectedUserAgent | null {
-  if (!userAgentType) return null;
+  userAgentType: UserAgentType,
+): SelectedUserAgent {
+  if (userAgentType === "none") {
+    return { type: userAgentType, value: null };
+  }
+
   const candidates = userAgentPoolsFile.pools[userAgentType];
   return {
     value: candidates[Math.floor(Math.random() * candidates.length)],
@@ -32,7 +41,5 @@ function selectRandomUserAgent(
 export function selectRandomUserAgents(
   userAgentTypes: UserAgentType[],
 ): SelectedUserAgent[] {
-  return userAgentTypes
-    .map(selectRandomUserAgent)
-    .filter((userAgent) => userAgent !== null);
+  return userAgentTypes.map(selectRandomUserAgent);
 }

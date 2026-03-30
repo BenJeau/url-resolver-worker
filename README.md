@@ -32,6 +32,12 @@ Optional comma-separated user-agent chain (tries in this order, until a valid `L
 curl "https://<your-worker>.workers.dev?url=bit.ly/abc123&user-agent=ios,android,windows"
 ```
 
+Optional explicit no-header user-agent attempt (`none`):
+
+```bash
+curl "https://<your-worker>.workers.dev?url=bit.ly/abc123&user-agent=ios,none,android"
+```
+
 Optional flag to disable `http`/`https` `Location` scheme enforcement for user-agent retries:
 
 ```bash
@@ -59,9 +65,10 @@ curl -X POST "https://<your-worker>.workers.dev" \
 - Query param `url` is checked first.
 - If not provided, POST body is used.
 - If scheme is missing, `https://` is prepended.
-- Optional query param `user-agent` supports: `ios`, `android`, `macos`, `windows` (case-insensitive).
+- Optional query param `user-agent` supports: `ios`, `android`, `mac`, `windows`, `none` (case-insensitive).
 - `user-agent` accepts a single type or a comma-separated ordered list (for example `?user-agent=ios,android`).
 - One random User-Agent string is selected for each provided platform type in order and reused across hops for that request.
+- `none` means "attempt this step without sending a `User-Agent` header" and can be mixed into ordered chains.
 - Optional query param `enforce-http-scheme` defaults to `true`. When `true`, fallback retries continue until `Location` resolves to `http`/`https` (or the UA list is exhausted). Set `false` to allow any `Location` scheme.
 - When no valid user-agent types are provided, no User-Agent header is sent upstream.
 - Optional query param `debug=true` enables worker IP lookup; by default IP lookup is skipped.
@@ -127,7 +134,7 @@ Example shape:
 - Maximum hops: configurable via `MAX_HOPS` (default `10`)
 - Per-hop upstream timeout: configurable via `UPSTREAM_TIMEOUT_MS` (default `8000`)
 - Method used for hop fetches: `GET`
-- Optional upstream user agent pool/chain via `?user-agent=<type>` or `?user-agent=<type1,type2,...>` (same type set)
+- Optional upstream user agent pool/chain via `?user-agent=<type>` or `?user-agent=<type1,type2,...>` where type is one of `ios`, `android`, `mac`, `windows`, `none`
 - User-agent pools are pre-generated into `src/user-agent-pools.json` from Microlink's `user` list (`https://microlink.io/user-agents.json`)
 - Worker egress IP lookup is only executed when `?debug=true`; otherwise `worker.ip` is `null`.
 - Redirects are only followed while host remains equal to the initial normalized host
@@ -143,7 +150,7 @@ Example shape:
 - `redirects_followed`: number of accepted same-host redirects.
 - `redirects_followed` is always less than or equal to `hops.length`.
 - `timing_ms`: total resolver duration.
-- `user_agent`: object for the last successful user-agent attempt, containing `type` (`ios`, `android`, `macos`, `windows`) and header `value`; `null` when no user-agent was used.
+- `user_agent`: object for the last successful user-agent attempt, containing `type` (`ios`, `android`, `mac`, `windows`, `none`) and header `value` (`string` for platform pools, `null` for `none`); `null` when no user-agent parameter was valid/provided.
 - `worker.ip`: resolved only when `debug=true`; otherwise `null`.
 
 ## Hop queue (`hops`) and `stop_reason`
@@ -155,7 +162,7 @@ Each hop includes:
 - `request.url`: upstream URL requested for that hop.
 - `request.user_agents`: ordered User-Agents attempted for that hop, in first-to-last attempt order, each with:
   - `type`
-  - raw header `value`
+  - raw header `value` (`null` for `type=none`)
   - optional `retry_reason` when the resolver moved to the next user-agent:
     - `non_http_https_scheme`
     - `non_redirect_status`
