@@ -476,6 +476,29 @@ describe("url-resolver worker", () => {
       expect(payload.hops).toHaveLength(1);
     });
 
+    it("follows non-www to www redirect on the same domain", async () => {
+      installUpstreamMock({
+        "https://example.com/start": () =>
+          new Response(null, {
+            status: 302,
+            headers: { location: "https://www.example.com/final" },
+          }),
+        "https://www.example.com/final": () => new Response("ok", { status: 200 }),
+      });
+
+      const response = await SELF.fetch(
+        "https://resolver.test/?url=example.com/start",
+      );
+      const payload = await response.json<ResolvePayload>();
+
+      expect(response.status).toBe(200);
+      expect(payload.stop_reason).toBe("non_redirect_status");
+      expect(payload.redirects_followed).toBe(1);
+      expect(payload.status).toBe(200);
+      expect(payload.urls.destination).toBe("https://www.example.com/final");
+      expect(payload.hops).toHaveLength(2);
+    });
+
     it("unwraps embedded destination after cross_domain_redirect", async () => {
       installUpstreamMock({
         "https://short.ly/start": () =>

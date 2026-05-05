@@ -107,6 +107,18 @@ function isAppStoreRedirectUrl(url: URL): boolean {
   return APP_STORE_HOSTNAMES.has(url.hostname.toLowerCase());
 }
 
+function canonicalHostnameForDomainMatch(hostname: string): string {
+  const normalized = hostname.toLowerCase().replace(/\.$/, "");
+  return normalized.startsWith("www.") ? normalized.slice(4) : normalized;
+}
+
+function isEquivalentDomain(originHost: string, nextHost: string): boolean {
+  return (
+    canonicalHostnameForDomainMatch(originHost) ===
+    canonicalHostnameForDomainMatch(nextHost)
+  );
+}
+
 function getUserAgentRetryReason(
   response: Response,
   currentUrl: URL,
@@ -324,7 +336,7 @@ export async function resolveUrl(
     }
 
     redirectsFollowed += 1;
-    if (next.hostname.toLowerCase() !== originHost) {
+    if (!isEquivalentDomain(originHost, next.hostname)) {
       stopReason = "cross_domain_redirect";
       current = next;
       break;
