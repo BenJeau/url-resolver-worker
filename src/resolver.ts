@@ -23,7 +23,11 @@ type StopReason =
 type UserAgentRetryReason =
   | "app_store_redirect"
   | "non_http_https_scheme"
-  | "non_redirect_status";
+  | "non_redirect_status"
+  | "missing_location_header"
+  | "invalid_location_header"
+  | "same_url_redirect"
+  | "upstream_timeout";
 
 type AttemptedUserAgent = SelectedUserAgent & {
   retry_reason?: UserAgentRetryReason;
@@ -111,36 +115,42 @@ function getUserAgentRetryReason(
 ): UserAgentRetryDetails | null {
   const location = response.headers.get("location");
 
-  if (location) {
-    const parsedLocation = resolveLocationUrl(location, currentUrl);
-    const resolvedUrl = parsedLocation?.toString() ?? null;
-
-    if (
-      parsedLocation &&
-      userAgentType &&
-      isMobileUserAgentType(userAgentType) &&
-      isAppStoreRedirectUrl(parsedLocation)
-    ) {
-      return {
-        reason: "app_store_redirect",
-        resolved_url: resolvedUrl,
-      };
+  if (!location) {
+    if (response.status >= 300 && response.status < 400) {
+      return { reason: "missing_location_header", resolved_url: null };
     }
-
-    if (enforceHttpScheme) {
-      if (!parsedLocation || !isHttpOrHttps(parsedLocation)) {
-        return {
-          reason: "non_http_https_scheme",
-          resolved_url: resolvedUrl,
-        };
-      }
-    }
-    return null;
-  }
-
-  if (response.status === 200) {
     return { reason: "non_redirect_status", resolved_url: null };
   }
+
+  const parsedLocation = resolveLocationUrl(location, currentUrl);
+  const resolvedUrl = parsedLocation?.toString() ?? null;
+
+  if (!parsedLocation) {
+    return { reason: "invalid_location_header", resolved_url: null };
+  }
+
+  if (parsedLocation.toString() === currentUrl.toString()) {
+    return { reason: "same_url_redirect", resolved_url: resolvedUrl };
+  }
+
+  if (
+    userAgentType &&
+    isMobileUserAgentType(userAgentType) &&
+    isAppStoreRedirectUrl(parsedLocation)
+  ) {
+    return {
+      reason: "app_store_redirect",
+      resolved_url: resolvedUrl,
+    };
+  }
+
+  if (enforceHttpScheme && !isHttpOrHttps(parsedLocation)) {
+    return {
+      reason: "non_http_https_scheme",
+      resolved_url: resolvedUrl,
+    };
+  }
+
   return null;
 }
 
@@ -231,6 +241,13 @@ export async function resolveUrl(
         break;
       } catch (error) {
         if (error instanceof Error && error.name === "AbortError") {
+          if (attempt < userAgentsToTry.length - 1) {
+            if (attemptedUserAgent) {
+              attemptedUserAgent.retry_reason = "upstream_timeout";
+              attemptedUserAgent.resolved_url = null;
+            }
+            continue;
+          }
           stopReason = "upstream_timeout";
           status = 504;
           userAgent = candidateUserAgent

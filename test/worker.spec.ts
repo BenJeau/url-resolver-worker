@@ -26,7 +26,11 @@ type ResolvePayload = {
         retry_reason?:
           | "app_store_redirect"
           | "non_http_https_scheme"
-          | "non_redirect_status";
+          | "non_redirect_status"
+          | "missing_location_header"
+          | "invalid_location_header"
+          | "same_url_redirect"
+          | "upstream_timeout";
         resolved_url?: string | null;
       }>;
     };
@@ -708,6 +712,104 @@ describe("url-resolver worker", () => {
           type: "ios",
           value: ios,
           retry_reason: "non_redirect_status",
+          resolved_url: null,
+        },
+        { type: "android", value: android },
+      ]);
+      expect(seenUserAgents).toEqual([ios, android]);
+    });
+
+    it("tries next user-agent when redirect has no location header", async () => {
+      const ios = userAgentPools.ios[0];
+      const android = userAgentPools.android[0];
+      const seenUserAgents: string[] = [];
+
+      installUpstreamMock({
+        "https://ua-missing-location.test/start": (request) => {
+          const requestUserAgent = request.headers.get("user-agent");
+          if (requestUserAgent) seenUserAgents.push(requestUserAgent);
+
+          if (requestUserAgent === ios) {
+            return new Response(null, { status: 302 });
+          }
+
+          if (requestUserAgent === android) {
+            return new Response(null, {
+              status: 302,
+              headers: { location: "https://example.com/final" },
+            });
+          }
+
+          throw new Error(`Unexpected user-agent: ${requestUserAgent}`);
+        },
+      });
+
+      vi.spyOn(Math, "random").mockReturnValue(0);
+
+      const response = await SELF.fetch(
+        "https://resolver.test/?url=ua-missing-location.test/start&user-agent=ios,android",
+      );
+      const payload = await response.json<ResolvePayload>();
+
+      expect(response.status).toBe(200);
+      expect(payload.user_agent).toEqual({ type: "android", value: android });
+      expect(payload.stop_reason).toBe("cross_domain_redirect");
+      expect(payload.urls.destination).toBe("https://example.com/final");
+      expect(payload.hops[0]?.request.user_agents).toEqual([
+        {
+          type: "ios",
+          value: ios,
+          retry_reason: "missing_location_header",
+          resolved_url: null,
+        },
+        { type: "android", value: android },
+      ]);
+      expect(seenUserAgents).toEqual([ios, android]);
+    });
+
+    it("tries next user-agent when earlier attempt times out", async () => {
+      const ios = userAgentPools.ios[0];
+      const android = userAgentPools.android[0];
+      const seenUserAgents: string[] = [];
+
+      installUpstreamMock({
+        "https://ua-timeout-chain.test/start": (request) => {
+          const requestUserAgent = request.headers.get("user-agent");
+          if (requestUserAgent) seenUserAgents.push(requestUserAgent);
+
+          if (requestUserAgent === ios) {
+            const abortError = new Error("timed out");
+            abortError.name = "AbortError";
+            throw abortError;
+          }
+
+          if (requestUserAgent === android) {
+            return new Response(null, {
+              status: 302,
+              headers: { location: "https://example.com/final" },
+            });
+          }
+
+          throw new Error(`Unexpected user-agent: ${requestUserAgent}`);
+        },
+      });
+
+      vi.spyOn(Math, "random").mockReturnValue(0);
+
+      const response = await SELF.fetch(
+        "https://resolver.test/?url=ua-timeout-chain.test/start&user-agent=ios,android",
+      );
+      const payload = await response.json<ResolvePayload>();
+
+      expect(response.status).toBe(200);
+      expect(payload.user_agent).toEqual({ type: "android", value: android });
+      expect(payload.stop_reason).toBe("cross_domain_redirect");
+      expect(payload.urls.destination).toBe("https://example.com/final");
+      expect(payload.hops[0]?.request.user_agents).toEqual([
+        {
+          type: "ios",
+          value: ios,
+          retry_reason: "upstream_timeout",
           resolved_url: null,
         },
         { type: "android", value: android },
