@@ -82,8 +82,10 @@ Example shape:
   "urls": {
     "input": "bit.ly/abc123",
     "normalized": "https://bit.ly/abc123",
+    "raw_destination": "https://example.com/final-page",
     "destination": "https://example.com/final-page"
   },
+  "embedded_url_rule": "google-url",
   "user_agent": {
     "type": "android",
     "value": "Mozilla/5.0 (Linux; Android 14; Pixel 8) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/125.0.0.0 Mobile Safari/537.36"
@@ -94,6 +96,7 @@ Example shape:
   "timing_ms": 72.5,
   "hops": [
     {
+      "type": "resolve",
       "request": {
         "url": "https://bit.ly/abc123",
         "user_agents": [
@@ -139,11 +142,31 @@ Example shape:
 - Worker egress IP lookup is only executed when `?debug=true`; otherwise `worker.ip` is `null`.
 - Redirects are only followed while host remains equal to the initial normalized host
 - If next host is different, that URL becomes destination and traversal stops
+- Final `urls.destination` is always passed through embedded URL extraction
+- `urls.raw_destination` captures the URL before that final extraction pass
+- `embedded_url_rule` is the ID of the embedded URL rule that most directly produced `urls.destination`; `null` when no embedded rule was applied
 - If `Location` header exists and can be parsed, resolver follows it regardless of status code
 - For each hop, resolver can retry with the next UA in chain when:
   - status is `200` and `Location` is missing
   - active UA is `ios` or `android` and `Location` resolves to App Store / Play Store link
   - `Location` does not resolve to `http`/`https` and `enforce-http-scheme=true` (default)
+
+### Embedded redirect wrappers
+
+Before hop resolution starts, known wrapper URLs are unwrapped recursively (up to a bounded depth). Supported examples include:
+
+- `google.com/url?q=NESTED_URL`
+- `google.com/url?sa=D&q=NESTED_URL`
+- `google.com/amp/s/NESTED_URL_WITHOUT_SCHEME`
+- `google.com/amp/NESTED_URL_WITHOUT_SCHEME`
+- `t.me/iv?url=NESTED_URL`
+- `twitter.com/safety/unsafe_link_warning?unsafe_link=NESTED_URL`
+- `l.facebook.com/l.php?u=NESTED_URL`
+- `m.facebook.com/flx/warn/?u=NESTED_URL`
+- `www.facebook.com/flx/warn/?u=NESTED_URL`
+- `youtube.com/redirect?q=NESTED_URL`
+- `apis.google.com/additnow/l?applicationId=1&__ls=ogb&__lu=NESTED_URL`
+- `redirect.viglink.com/?u=NESTED_URL`
 
 ### Interpreting top-level fields (verbose/full mode)
 
@@ -151,26 +174,36 @@ Example shape:
 - `redirects_followed`: number of accepted same-host redirects.
 - `redirects_followed` is always less than or equal to `hops.length`.
 - `timing_ms`: total resolver duration.
+- `embedded_url_rule`: ID of the embedded wrapper rule used to derive the final destination, or `null` if none matched.
 - `user_agent`: object for the last successful user-agent attempt, containing `type` (`ios`, `android`, `mac`, `windows`, `none`) and header `value` (`string` for platform pools, `null` for `none`); `null` when no user-agent parameter was valid/provided.
 - `worker.ip`: resolved only when `debug=true`; otherwise `null`.
 
 ## Hop queue (`hops`) and `stop_reason`
 
-`hops` is an ordered queue of resolution attempts.
+`hops` is an ordered queue that can contain:
+
+- `type=resolve`: upstream request/redirect attempts.
+- `type=extraction`: embedded-wrapper unwrapping steps.
 
 Each hop includes:
 
-- `request.url`: upstream URL requested for that hop.
-- `request.user_agents`: ordered User-Agents attempted for that hop, in first-to-last attempt order, each with:
-  - `type`
-  - raw header `value` (`null` for `type=none`)
-  - optional `retry_reason` when the resolver moved to the next user-agent:
-    - `app_store_redirect`
-    - `non_http_https_scheme`
-    - `non_redirect_status`
-  - optional `resolved_url` captured for retry attempts:
-    - absolute URL if `Location` could be resolved (for example `myapp://open` or `https://...`)
-    - `null` when retry happened without a `Location` header (for example `non_redirect_status`)
+- For `type=resolve`:
+  - `request.url`: upstream URL requested for that hop.
+  - `next_url`: resolved `Location` URL (or `null`).
+  - `status`: upstream response status for the hop.
+  - `request.user_agents`: ordered User-Agents attempted for that hop, in first-to-last attempt order, each with:
+    - `type`
+    - raw header `value` (`null` for `type=none`)
+    - optional `retry_reason` when the resolver moved to the next user-agent:
+      - `app_store_redirect`
+      - `non_http_https_scheme`
+      - `non_redirect_status`
+      - optional `resolved_url` captured for retry attempts:
+      - absolute URL if `Location` could be resolved (for example `myapp://open` or `https://...`)
+      - `null` when retry happened without a `Location` header (for example `non_redirect_status`)
+- For `type=extraction`:
+  - `next_url`: URL after applying one extraction rule step.
+  - `rule_id`: embedded extraction rule ID applied for that step (list of rules is in [`src/embedded-url-rules.ts`](src/embedded-url-rules.ts))
 
 Possible `stop_reason` values:
 

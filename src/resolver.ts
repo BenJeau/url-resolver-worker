@@ -1,5 +1,6 @@
 import { env } from "cloudflare:workers";
 
+import { extractEmbeddedDestination } from "./embedded-url";
 import { NormalizedTarget } from "./request";
 import {
   selectRandomUserAgents,
@@ -35,6 +36,7 @@ type UserAgentRetryDetails = {
 };
 
 type ResolveHop = {
+  type: "resolve";
   request: {
     url: string;
     user_agents?: AttemptedUserAgent[];
@@ -45,19 +47,27 @@ type ResolveHop = {
   response_headers?: HeaderMap;
 };
 
+type ExtractionHop = {
+  type: "extraction";
+  next_url: string;
+  rule_id: string;
+};
+
 type ResolveResult = {
   urls: {
     input: string;
     normalized: string;
+    raw_destination: string;
     destination: string;
   };
+  embedded_url_rule: string | null;
   user_agent: SelectedUserAgent | null;
   stop_reason: StopReason;
   redirects_followed: number;
   status: number;
   timing_ms: number;
   worker?: WorkerInfo;
-  hops: ResolveHop[];
+  hops: Array<ResolveHop | ExtractionHop>;
 };
 
 const APP_STORE_HOSTNAMES = new Set([
@@ -159,12 +169,21 @@ export async function resolveUrl(
   enforceHttpScheme = true,
 ): Promise<ResolveResult> {
   const startedAt = performance.now();
-  const hops: ResolveHop[] = [];
+  const hops: Array<ResolveHop | ExtractionHop> = [];
   const originHost = url.target.hostname.toLowerCase();
   const selectedUserAgents = selectRandomUserAgents(userAgentTypes);
   const userAgentsToTry: Array<SelectedUserAgent | null> =
     selectedUserAgents.length > 0 ? selectedUserAgents : [null];
-  let current = url.target;
+  const initialExtraction = extractEmbeddedDestination(url.target);
+  let current = initialExtraction.destination;
+  let embeddedUrlRule = initialExtraction.ruleId;
+  for (const hop of initialExtraction.hops) {
+    hops.push({
+      type: "extraction",
+      next_url: hop.next_url,
+      rule_id: hop.rule_id,
+    });
+  }
   let redirectsFollowed = 0;
   let status = 0;
   let userAgent: SelectedUserAgent | null = null;
@@ -218,6 +237,7 @@ export async function resolveUrl(
             ? { type: candidateUserAgent.type, value: candidateUserAgent.value }
             : null;
           hops.push({
+            type: "resolve",
             request: {
               url: current.toString(),
               user_agents:
@@ -253,6 +273,7 @@ export async function resolveUrl(
 
     status = response.status;
     hops.push({
+      type: "resolve",
       request: {
         url: current.toString(),
         user_agents:
@@ -295,12 +316,26 @@ export async function resolveUrl(
     current = next;
   }
 
+  const finalExtraction = extractEmbeddedDestination(current);
+  if (finalExtraction.ruleId) {
+    embeddedUrlRule = finalExtraction.ruleId;
+  }
+  for (const hop of finalExtraction.hops) {
+    hops.push({
+      type: "extraction",
+      next_url: hop.next_url,
+      rule_id: hop.rule_id,
+    });
+  }
+
   return {
     urls: {
       input: url.raw,
       normalized: url.target.toString(),
-      destination: current.toString(),
+      raw_destination: current.toString(),
+      destination: finalExtraction.destination.toString(),
     },
+    embedded_url_rule: embeddedUrlRule,
     user_agent: userAgent,
     stop_reason: stopReason,
     redirects_followed: redirectsFollowed,

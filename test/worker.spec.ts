@@ -5,13 +5,20 @@ import { SELF } from "cloudflare:test";
 
 type UpstreamHandler = (request: Request) => Response | Promise<Response>;
 type ResolvePayload = {
-  urls: { input: string; normalized: string; destination: string };
+  urls: {
+    input: string;
+    normalized: string;
+    raw_destination: string;
+    destination: string;
+  };
+  embedded_url_rule: string | null;
   user_agent: { type: UserAgentType; value: string | null } | null;
   stop_reason: string;
   redirects_followed: number;
   status: number;
   hops: Array<{
-    request: {
+    type: "resolve" | "extraction";
+    request?: {
       url: string;
       user_agents?: Array<{
         type: UserAgentType;
@@ -23,8 +30,9 @@ type ResolvePayload = {
         resolved_url?: string | null;
       }>;
     };
-    next_url: string | null;
-    status: number;
+    next_url: string | null | string;
+    status?: number;
+    rule_id?: string;
   }>;
   worker: { ip: string | null };
 };
@@ -63,6 +71,10 @@ function installUpstreamMock(routes: Record<string, UpstreamHandler>) {
 
   vi.stubGlobal("fetch", fetchMock as typeof fetch);
   return fetchMock;
+}
+
+function firstResolveHop(payload: ResolvePayload) {
+  return payload.hops.find((hop) => hop.type === "resolve");
 }
 
 afterEach(() => {
@@ -129,6 +141,237 @@ describe("url-resolver worker", () => {
         expect(payload.error).toContain("Only GET and POST are supported");
       },
     );
+  });
+
+  describe("embedded redirect extraction", () => {
+    it("extracts google /url destination before resolving", async () => {
+      const fetchMock = installUpstreamMock({
+        "https://destination.test/final": () =>
+          new Response("ok", { status: 200 }),
+      });
+
+      const response = await SELF.fetch(
+        "https://resolver.test/?url=https%3A%2F%2Fwww.google.com%2Furl%3Fq%3Dhttps%253A%252F%252Fdestination.test%252Ffinal",
+      );
+      const payload = await response.json<ResolvePayload>();
+
+      expect(response.status).toBe(200);
+      expect(payload.urls.destination).toBe("https://destination.test/final");
+      expect(payload.urls.raw_destination).toBe(
+        "https://destination.test/final",
+      );
+      expect(payload.embedded_url_rule).toBe("google-url");
+      expect(firstResolveHop(payload)?.request?.url).toBe(
+        "https://destination.test/final",
+      );
+      expect(fetchMock).toHaveBeenCalledTimes(1);
+    });
+
+    it("extracts youtube redirect destination before resolving", async () => {
+      const fetchMock = installUpstreamMock({
+        "https://destination.test/youtube": () =>
+          new Response("ok", { status: 200 }),
+      });
+
+      const response = await SELF.fetch(
+        "https://resolver.test/?url=https%3A%2F%2Fwww.youtube.com%2Fredirect%3Fq%3Dhttps%253A%252F%252Fdestination.test%252Fyoutube",
+      );
+      const payload = await response.json<ResolvePayload>();
+
+      expect(response.status).toBe(200);
+      expect(payload.urls.destination).toBe("https://destination.test/youtube");
+      expect(firstResolveHop(payload)?.request?.url).toBe(
+        "https://destination.test/youtube",
+      );
+      expect(fetchMock).toHaveBeenCalledTimes(1);
+    });
+
+    it("extracts facebook l.php destination before resolving", async () => {
+      const fetchMock = installUpstreamMock({
+        "https://destination.test/facebook": () =>
+          new Response("ok", { status: 200 }),
+      });
+
+      const response = await SELF.fetch(
+        "https://resolver.test/?url=https%3A%2F%2Fl.facebook.com%2Fl.php%3Fu%3Dhttps%253A%252F%252Fdestination.test%252Ffacebook",
+      );
+      const payload = await response.json<ResolvePayload>();
+
+      expect(response.status).toBe(200);
+      expect(payload.urls.destination).toBe(
+        "https://destination.test/facebook",
+      );
+      expect(firstResolveHop(payload)?.request?.url).toBe(
+        "https://destination.test/facebook",
+      );
+      expect(fetchMock).toHaveBeenCalledTimes(1);
+    });
+
+    it.each([
+      [
+        "google /url with q",
+        "https://www.google.com/url?q=https%3A%2F%2Fdestination.test%2Fgoogle-q",
+        "https://destination.test/google-q",
+      ],
+      [
+        "google /url with sa and q",
+        "https://www.google.com/url?sa=D&q=https%3A%2F%2Fdestination.test%2Fgoogle-sa-q",
+        "https://destination.test/google-sa-q",
+      ],
+      [
+        "t.me iv redirect",
+        "https://t.me/iv?url=https%3A%2F%2Fdestination.test%2Ftelegram",
+        "https://destination.test/telegram",
+      ],
+      [
+        "twitter unsafe link warning",
+        "https://twitter.com/safety/unsafe_link_warning?unsafe_link=https%3A%2F%2Fdestination.test%2Ftwitter-warning",
+        "https://destination.test/twitter-warning",
+      ],
+      [
+        "facebook l.php",
+        "https://l.facebook.com/l.php?u=https%3A%2F%2Fdestination.test%2Ffacebook-l",
+        "https://destination.test/facebook-l",
+      ],
+      [
+        "facebook mobile flx warn",
+        "https://m.facebook.com/flx/warn/?u=https%3A%2F%2Fdestination.test%2Ffacebook-m",
+        "https://destination.test/facebook-m",
+      ],
+      [
+        "facebook web flx warn",
+        "https://www.facebook.com/flx/warn/?u=https%3A%2F%2Fdestination.test%2Ffacebook-www",
+        "https://destination.test/facebook-www",
+      ],
+      [
+        "youtube redirect q",
+        "https://www.youtube.com/redirect?q=https%3A%2F%2Fdestination.test%2Fyoutube-q",
+        "https://destination.test/youtube-q",
+      ],
+      [
+        "apis.google.com additnow __lu",
+        "https://apis.google.com/additnow/l?applicationId=1&__ls=ogb&__lu=https%3A%2F%2Fdestination.test%2Fgoogle-additnow",
+        "https://destination.test/google-additnow",
+      ],
+      [
+        "instagram accounts login next",
+        "https://www.instagram.com/accounts/login/?next=https%3A%2F%2Fwww.instagram.com%2Finsta%2F%3Fhl%3Den&is_from_rle",
+        "https://www.instagram.com/insta/?hl=en",
+      ],
+    ])(
+      "extracts %s destination before resolving",
+      async (_label, wrappedUrl, expectedDestination) => {
+        const fetchMock = installUpstreamMock({
+          [expectedDestination]: () => new Response("ok", { status: 200 }),
+        });
+
+        const response = await SELF.fetch(
+          `https://resolver.test/?url=${encodeURIComponent(wrappedUrl)}`,
+        );
+        const payload = await response.json<ResolvePayload>();
+
+        expect(response.status).toBe(200);
+        expect(payload.urls.destination).toBe(expectedDestination);
+        expect(firstResolveHop(payload)?.request?.url).toBe(
+          expectedDestination,
+        );
+        expect(fetchMock).toHaveBeenCalledTimes(1);
+      },
+    );
+
+    it("recursively unwraps nested redirect wrappers", async () => {
+      const fetchMock = installUpstreamMock({
+        "https://destination.test/nested": () =>
+          new Response("ok", { status: 200 }),
+      });
+
+      const response = await SELF.fetch(
+        "https://resolver.test/?url=https%3A%2F%2Fwww.google.com%2Furl%3Fq%3Dhttps%253A%252F%252Fl.facebook.com%252Fl.php%253Fu%253Dhttps%25253A%25252F%25252Fdestination.test%25252Fnested",
+      );
+      const payload = await response.json<ResolvePayload>();
+
+      expect(response.status).toBe(200);
+      expect(payload.urls.destination).toBe("https://destination.test/nested");
+      expect(payload.embedded_url_rule).toBe("facebook-lphp");
+      expect(firstResolveHop(payload)?.request?.url).toBe(
+        "https://destination.test/nested",
+      );
+      expect(fetchMock).toHaveBeenCalledTimes(1);
+    });
+
+    it("unwraps google amp path URLs", async () => {
+      const wrappedUrl =
+        "https://www.google.com/amp/s/destination.test/google-amp";
+      const expectedDestination = "https://destination.test/google-amp";
+      const fetchMock = installUpstreamMock({
+        [expectedDestination]: () => new Response("ok", { status: 200 }),
+      });
+
+      const response = await SELF.fetch(
+        `https://resolver.test/?url=${encodeURIComponent(wrappedUrl)}`,
+      );
+      const payload = await response.json<ResolvePayload>();
+
+      expect(response.status).toBe(200);
+      expect(payload.urls.raw_destination).toBe(expectedDestination);
+      expect(payload.urls.destination).toBe(expectedDestination);
+      expect(payload.embedded_url_rule).toBe("google-amp-path");
+      expect(firstResolveHop(payload)?.request?.url).toBe(expectedDestination);
+      expect(payload.hops.some((hop) => hop.type === "extraction")).toBe(true);
+      expect(payload.hops).toContainEqual({
+        type: "extraction",
+        next_url: expectedDestination,
+        rule_id: "google-amp-path",
+      });
+      expect(fetchMock).toHaveBeenCalledTimes(1);
+    });
+
+    it("unwraps google amp path URLs without /s/", async () => {
+      const wrappedUrl =
+        "https://www.google.com/amp/destination.test/google-amp-no-s";
+      const expectedDestination = "https://destination.test/google-amp-no-s";
+      const fetchMock = installUpstreamMock({
+        [expectedDestination]: () => new Response("ok", { status: 200 }),
+      });
+
+      const response = await SELF.fetch(
+        `https://resolver.test/?url=${encodeURIComponent(wrappedUrl)}`,
+      );
+      const payload = await response.json<ResolvePayload>();
+
+      expect(response.status).toBe(200);
+      expect(payload.urls.raw_destination).toBe(expectedDestination);
+      expect(payload.urls.destination).toBe(expectedDestination);
+      expect(payload.embedded_url_rule).toBe("google-amp-path-no-s");
+      expect(firstResolveHop(payload)?.request?.url).toBe(expectedDestination);
+      expect(payload.hops.some((hop) => hop.type === "extraction")).toBe(true);
+      expect(payload.hops).toContainEqual({
+        type: "extraction",
+        next_url: expectedDestination,
+        rule_id: "google-amp-path-no-s",
+      });
+      expect(fetchMock).toHaveBeenCalledTimes(1);
+    });
+
+    it("extracts viglink redirect destination before resolving", async () => {
+      const expectedDestination = "https://destination.test/viglink";
+      const wrappedUrl = `https://redirect.viglink.com/?u=${encodeURIComponent(expectedDestination)}`;
+      const fetchMock = installUpstreamMock({
+        [expectedDestination]: () => new Response("ok", { status: 200 }),
+      });
+
+      const response = await SELF.fetch(
+        `https://resolver.test/?url=${encodeURIComponent(wrappedUrl)}`,
+      );
+      const payload = await response.json<ResolvePayload>();
+
+      expect(response.status).toBe(200);
+      expect(payload.urls.raw_destination).toBe(expectedDestination);
+      expect(payload.urls.destination).toBe(expectedDestination);
+      expect(payload.embedded_url_rule).toBe("viglink-redirect");
+      expect(firstResolveHop(payload)?.request?.url).toBe(expectedDestination);
+      expect(fetchMock).toHaveBeenCalledTimes(1);
+    });
   });
 
   describe("stop_reason coverage", () => {
@@ -227,6 +470,44 @@ describe("url-resolver worker", () => {
       expect(payload.status).toBe(302);
       expect(payload.urls.destination).toBe("https://example.com/final");
       expect(payload.hops).toHaveLength(1);
+    });
+
+    it("unwraps embedded destination after cross_domain_redirect", async () => {
+      installUpstreamMock({
+        "https://short.ly/start": () =>
+          new Response(null, {
+            status: 302,
+            headers: {
+              location:
+                "https://www.instagram.com/accounts/login/?next=https%3A%2F%2Fexample.com%2Ffinal&is_from_rle",
+            },
+          }),
+      });
+
+      const response = await SELF.fetch(
+        "https://resolver.test/?url=short.ly/start",
+      );
+      const payload = await response.json<ResolvePayload>();
+
+      expect(response.status).toBe(200);
+      expect(payload.stop_reason).toBe("cross_domain_redirect");
+      expect(payload.redirects_followed).toBe(1);
+      expect(payload.status).toBe(302);
+      expect(payload.hops).toHaveLength(2);
+      expect(payload.hops[0]?.next_url).toBe(
+        "https://www.instagram.com/accounts/login/?next=https%3A%2F%2Fexample.com%2Ffinal&is_from_rle",
+      );
+      expect(payload.hops[0]?.type).toBe("resolve");
+      expect(payload.hops[1]).toEqual({
+        type: "extraction",
+        next_url: "https://example.com/final",
+        rule_id: "instagram-accounts-login",
+      });
+      expect(payload.urls.raw_destination).toBe(
+        "https://www.instagram.com/accounts/login/?next=https%3A%2F%2Fexample.com%2Ffinal&is_from_rle",
+      );
+      expect(payload.urls.destination).toBe("https://example.com/final");
+      expect(payload.embedded_url_rule).toBe("instagram-accounts-login");
     });
 
     it("stops with max_hops_reached", async () => {
@@ -628,7 +909,7 @@ describe("url-resolver worker", () => {
       expect(payload.user_agent).toEqual({ type: "android", value: android });
       expect(payload.stop_reason).toBe("cross_domain_redirect");
       expect(payload.urls.destination).toBe("https://example.com/final");
-      expect(payload.hops[0]?.request.user_agents).toEqual([
+      expect(payload.hops[0]?.request?.user_agents).toEqual([
         {
           type: "ios",
           value: ios,
