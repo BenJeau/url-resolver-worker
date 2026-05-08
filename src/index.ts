@@ -1,8 +1,11 @@
+import { env } from "cloudflare:workers";
+
 import {
   extractDebugFlag,
   extractEnforceHttpSchemeFlag,
   extractUrl,
 } from "./request";
+import { createContinueDomains } from "./continue-hop-domains";
 import { resolveUrl } from "./resolver";
 import { extractUserAgentTypes } from "./user-agent";
 import { getWorkerInfo } from "./worker";
@@ -25,6 +28,7 @@ export default {
     const userAgentTypes = extractUserAgentTypes(url);
     const debug = extractDebugFlag(url);
     const enforceHttpScheme = extractEnforceHttpSchemeFlag(url);
+    const continueDomains = createContinueDomains(env.CONTINUE_HOP_DOMAINS);
     if (!target) {
       return json(
         { error: "Provide a valid URL via '?url=' (GET) or via body (POST)." },
@@ -35,7 +39,7 @@ export default {
     try {
       const [workerInfo, result] = await Promise.all([
         getWorkerInfo(request, debug),
-        resolveUrl(target, userAgentTypes, enforceHttpScheme),
+        resolveUrl(target, userAgentTypes, enforceHttpScheme, continueDomains),
       ]);
       result["worker"] = workerInfo;
       return json(result, 200);

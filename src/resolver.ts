@@ -189,6 +189,7 @@ export async function resolveUrl(
   url: NormalizedTarget,
   userAgentTypes: UserAgentType[],
   enforceHttpScheme = true,
+  continueDomains: ReadonlySet<string>,
 ): Promise<ResolveResult> {
   const startedAt = performance.now();
   const hops: Array<ResolveHop | ExtractionHop> = [];
@@ -336,7 +337,13 @@ export async function resolveUrl(
     }
 
     redirectsFollowed += 1;
-    if (!isEquivalentDomain(originHost, next.hostname)) {
+    const shouldContinueAcrossDomain = continueDomains.has(
+      canonicalHostnameForDomainMatch(next.hostname),
+    );
+    if (
+      !isEquivalentDomain(originHost, next.hostname) &&
+      !shouldContinueAcrossDomain
+    ) {
       stopReason = "cross_domain_redirect";
       current = next;
       break;

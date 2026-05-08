@@ -70,6 +70,7 @@ curl -X POST "https://<your-worker>.workers.dev" \
 - One random User-Agent string is selected for each provided platform type in order and reused across hops for that request.
 - `none` means "attempt this step without sending a `User-Agent` header" and can be mixed into ordered chains.
 - Optional query param `enforce-http-scheme` defaults to `true`. When `true`, fallback retries continue until `Location` resolves to `http`/`https` (or the UA list is exhausted). Set `false` to allow any `Location` scheme.
+- The worker also includes a built-in URL shortener domain list (generated into `src/url-shortener-domains.json`) and continues across those domains automatically.
 - When no valid user-agent types are provided, no User-Agent header is sent upstream.
 - Optional query param `debug=true` enables worker IP lookup; by default IP lookup is skipped.
 
@@ -139,8 +140,10 @@ Example shape:
 - Method used for hop fetches: `GET`
 - Optional upstream user agent pool/chain via `?user-agent=<type>` or `?user-agent=<type1,type2,...>` where type is one of `ios`, `android`, `mac`, `windows`, `none`
 - User-agent pools are pre-generated into `src/user-agent-pools.json` from Microlink's `user` list (`https://microlink.io/user-agents.json`)
+- URL shortener continue domains are pre-generated into `src/url-shortener-domains.json` from HaGeZi's list (`https://raw.githubusercontent.com/hagezi/dns-blocklists/refs/heads/main/wildcard/urlshortener-onlydomains.txt`)
 - Worker egress IP lookup is only executed when `?debug=true`; otherwise `worker.ip` is `null`.
 - Redirects are only followed while host remains equal to the initial normalized host
+- Exception: when a redirect target host matches the built-in shortener domain set (or `CONTINUE_HOP_DOMAINS` env var values), hop resolution continues
 - If next host is different, that URL becomes destination and traversal stops
 - Final `urls.destination` is always passed through embedded URL extraction
 - `urls.raw_destination` captures the URL before that final extraction pass
@@ -207,15 +210,15 @@ Each hop includes:
 
 Possible `stop_reason` values:
 
-| `stop_reason`             | Meaning                                                                    |
-| ------------------------- | -------------------------------------------------------------------------- |
-| `non_redirect_status`     | Last hop was not redirectable after UA retries (for example `200`, `404`). |
-| `missing_location_header` | Hop was 3xx but had no `Location` header.                                  |
-| `invalid_location_header` | `Location` existed but could not be parsed into a valid absolute URL.      |
-| `same_url_redirect`       | Redirect target is exactly the same URL as the current hop.                |
-| `cross_domain_redirect`   | Redirect target host differs from the original host.                       |
-| `max_hops_reached`        | Reached hop limit before another terminal condition.                       |
-| `upstream_timeout`        | Upstream request exceeded the per-hop timeout.                             |
+| `stop_reason`             | Meaning                                                                                    |
+| ------------------------- | ------------------------------------------------------------------------------------------ |
+| `non_redirect_status`     | Last hop was not redirectable after UA retries (for example `200`, `404`).                 |
+| `missing_location_header` | Hop was 3xx but had no `Location` header.                                                  |
+| `invalid_location_header` | `Location` existed but could not be parsed into a valid absolute URL.                      |
+| `same_url_redirect`       | Redirect target is exactly the same URL as the current hop.                                |
+| `cross_domain_redirect`   | Redirect target host differs from the original host and is not in the continue-domain set. |
+| `max_hops_reached`        | Reached hop limit before another terminal condition.                                       |
+| `upstream_timeout`        | Upstream request exceeded the per-hop timeout.                                             |
 
 ## Security controls built in
 
@@ -226,10 +229,11 @@ Possible `stop_reason` values:
 
 The worker reads these runtime env vars from `wrangler.toml` `[vars]` (with defaults):
 
-| Variable              | Default | Description                                                 |
-| --------------------- | ------- | ----------------------------------------------------------- |
-| `MAX_HOPS`            | `10`    | Max number of hops before stopping with `max_hops_reached`. |
-| `UPSTREAM_TIMEOUT_MS` | `8000`  | Per-hop timeout in milliseconds before `upstream_timeout`.  |
+| Variable               | Default | Description                                                                              |
+| ---------------------- | ------- | ---------------------------------------------------------------------------------------- |
+| `MAX_HOPS`             | `10`    | Max number of hops before stopping with `max_hops_reached`.                              |
+| `UPSTREAM_TIMEOUT_MS`  | `8000`  | Per-hop timeout in milliseconds before `upstream_timeout`.                               |
+| `CONTINUE_HOP_DOMAINS` | `""`    | Optional comma-separated custom domains to continue across after cross-domain redirects. |
 
 ## Error responses
 
@@ -280,6 +284,7 @@ curl -X POST "https://<your-worker>.workers.dev" \
 ```bash
 npm install
 npm run generate-user-agents
+npm run generate-url-shortener-domains
 npm run dev
 ```
 
@@ -306,6 +311,16 @@ npm run generate-user-agents
 ```
 
 This updates `src/user-agent-pools.json`. Runtime requests read this file directly (no per-request pool generation).
+
+## Generate URL Shortener Continue Domains
+
+To refresh the static shortener domain JSON from HaGeZi's list:
+
+```bash
+npm run generate-url-shortener-domains
+```
+
+This updates `src/url-shortener-domains.json`. Runtime requests read this file directly (no per-request list fetch).
 
 ## Generate Worker Types
 

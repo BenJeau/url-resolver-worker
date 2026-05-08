@@ -7,6 +7,7 @@ preview_urls = false
 [vars]
 MAX_HOPS = 10
 UPSTREAM_TIMEOUT_MS = 8000
+CONTINUE_HOP_DOMAINS = ""
 
 [observability]
 enabled = true

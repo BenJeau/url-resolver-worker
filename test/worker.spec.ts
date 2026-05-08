@@ -1,4 +1,6 @@
 import userAgentPoolsFile from "../src/user-agent-pools.json";
+import shortenerDomainsFile from "../src/url-shortener-domains.json";
+import { createContinueDomains } from "../src/continue-hop-domains";
 import { USER_AGENT_HEADER_TYPES, type UserAgentType } from "../src/user-agent";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { SELF } from "cloudflare:test";
@@ -45,6 +47,7 @@ const userAgentPools = userAgentPoolsFile.pools as Record<
   Exclude<UserAgentType, "none">,
   string[]
 >;
+const builtInContinueDomains = shortenerDomainsFile.domains as string[];
 
 function installUpstreamMock(routes: Record<string, UpstreamHandler>) {
   const handlers = new Map<string, UpstreamHandler>(
@@ -474,6 +477,51 @@ describe("url-resolver worker", () => {
       expect(payload.status).toBe(302);
       expect(payload.urls.destination).toBe("https://example.com/final");
       expect(payload.hops).toHaveLength(1);
+    });
+
+    it("continues through built-in URL shortener domains", async () => {
+      const shortenerDomain = builtInContinueDomains[0];
+      if (!shortenerDomain) {
+        throw new Error("Expected at least one built-in continue domain");
+      }
+
+      installUpstreamMock({
+        "https://origin.test/start": () =>
+          new Response(null, {
+            status: 302,
+            headers: { location: `https://${shortenerDomain}/hop` },
+          }),
+        [`https://${shortenerDomain}/hop`]: () =>
+          new Response(null, {
+            status: 302,
+            headers: { location: "https://destination.test/final" },
+          }),
+      });
+
+      const response = await SELF.fetch(
+        "https://resolver.test/?url=origin.test/start",
+      );
+      const payload = await response.json<ResolvePayload>();
+
+      expect(response.status).toBe(200);
+      expect(payload.stop_reason).toBe("cross_domain_redirect");
+      expect(payload.redirects_followed).toBe(2);
+      expect(payload.status).toBe(302);
+      expect(payload.urls.destination).toBe("https://destination.test/final");
+      expect(payload.hops).toHaveLength(2);
+    });
+
+    it("includes custom comma-separated domains from env var in continue domains", () => {
+      const result = createContinueDomains("custom1.test,custom2.test");
+      expect(result.has("custom1.test")).toBe(true);
+      expect(result.has("custom2.test")).toBe(true);
+    });
+
+    it("returns only built-in domains when env var is null or undefined", () => {
+      const withNull = createContinueDomains(null);
+      const withUndefined = createContinueDomains(undefined);
+      expect(withNull).toEqual(withUndefined);
+      expect(withNull.size).toBeGreaterThan(0);
     });
 
     it("follows non-www to www redirect on the same domain", async () => {
