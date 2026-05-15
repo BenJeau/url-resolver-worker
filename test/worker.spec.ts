@@ -1,6 +1,7 @@
 import userAgentPoolsFile from "../src/user-agent-pools.json";
 import shortenerDomainsFile from "../src/url-shortener-domains.json";
 import { createContinueDomains } from "../src/continue-hop-domains";
+import { getCorsHeaders } from "../src/cors";
 import { USER_AGENT_HEADER_TYPES, type UserAgentType } from "../src/user-agent";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { SELF } from "cloudflare:test";
@@ -89,6 +90,77 @@ afterEach(() => {
   vi.unstubAllGlobals();
 });
 
+describe("getCorsHeaders", () => {
+  function req(origin?: string): Request {
+    const headers: HeadersInit = origin ? { origin } : {};
+    return new Request("https://resolver.test/", { headers });
+  }
+
+  it("returns null when corsOrigins is empty", () => {
+    expect(getCorsHeaders(req("https://caller.example"), "")).toBeNull();
+  });
+
+  it("returns null when corsOrigins is null", () => {
+    expect(getCorsHeaders(req("https://caller.example"), null)).toBeNull();
+  });
+
+  it("returns null when corsOrigins is undefined", () => {
+    expect(getCorsHeaders(req("https://caller.example"), undefined)).toBeNull();
+  });
+
+  it("returns null when request has no Origin header", () => {
+    expect(getCorsHeaders(req(), "*")).toBeNull();
+  });
+
+  it("returns wildcard header for '*' origins", () => {
+    const headers = getCorsHeaders(req("https://caller.example"), "*");
+    expect(headers).not.toBeNull();
+    expect(headers!["access-control-allow-origin"]).toBe("*");
+    expect(headers!["vary"]).toBeUndefined();
+  });
+
+  it("reflects the matching origin for an explicit list", () => {
+    const headers = getCorsHeaders(
+      req("https://caller.example"),
+      "https://caller.example,https://other.example",
+    );
+    expect(headers).not.toBeNull();
+    expect(headers!["access-control-allow-origin"]).toBe(
+      "https://caller.example",
+    );
+    expect(headers!["vary"]).toBe("Origin");
+  });
+
+  it("returns null when the origin is not in the explicit list", () => {
+    const headers = getCorsHeaders(
+      req("https://unknown.example"),
+      "https://caller.example",
+    );
+    expect(headers).toBeNull();
+  });
+
+  it("trims whitespace around origins in the list", () => {
+    const headers = getCorsHeaders(
+      req("https://caller.example"),
+      " https://caller.example , https://other.example ",
+    );
+    expect(headers).not.toBeNull();
+    expect(headers!["access-control-allow-origin"]).toBe(
+      "https://caller.example",
+    );
+  });
+
+  it("exposes GET and POST in access-control-allow-methods", () => {
+    const headers = getCorsHeaders(req("https://caller.example"), "*");
+    expect(headers!["access-control-allow-methods"]).toBe("GET, POST");
+  });
+
+  it("exposes Content-Type in access-control-allow-headers", () => {
+    const headers = getCorsHeaders(req("https://caller.example"), "*");
+    expect(headers!["access-control-allow-headers"]).toBe("Content-Type");
+  });
+});
+
 describe("url-resolver worker", () => {
   it("returns 400 when url input is missing", async () => {
     const response = await SELF.fetch("https://resolver.test/");
@@ -134,7 +206,7 @@ describe("url-resolver worker", () => {
       expect(fetchMock).toHaveBeenCalledTimes(1);
     });
 
-    it.each(["PATCH", "PUT", "OPTIONS", "DELETE"] as const)(
+    it.each(["PATCH", "PUT", "DELETE"] as const)(
       "returns 405 for unsupported %s requests",
       async (method) => {
         const response = await SELF.fetch(
@@ -148,6 +220,35 @@ describe("url-resolver worker", () => {
         expect(payload.error).toContain("Only GET and POST are supported");
       },
     );
+
+    it("returns 405 for OPTIONS when CORS_ORIGINS is not configured", async () => {
+      const response = await SELF.fetch(
+        "https://resolver.test/?url=should-not-run.test",
+        {
+          method: "OPTIONS",
+          headers: { origin: "https://caller.example" },
+        },
+      );
+      const payload = await response.json<{ error: string }>();
+
+      expect(response.status).toBe(405);
+      expect(response.headers.get("allow")).toBe("GET, POST");
+      expect(payload.error).toContain("Only GET and POST are supported");
+    });
+
+    it("does not add CORS headers to responses when CORS_ORIGINS is not configured", async () => {
+      installUpstreamMock({
+        "https://no-cors.test/": () => new Response("ok", { status: 200 }),
+      });
+
+      const response = await SELF.fetch(
+        "https://resolver.test/?url=no-cors.test",
+        { headers: { origin: "https://caller.example" } },
+      );
+
+      expect(response.status).toBe(200);
+      expect(response.headers.get("access-control-allow-origin")).toBeNull();
+    });
   });
 
   describe("embedded redirect extraction", () => {

@@ -8,6 +8,10 @@ preview_urls = false
 MAX_HOPS = 10
 UPSTREAM_TIMEOUT_MS = 8000
 CONTINUE_HOP_DOMAINS = ""
+# Comma-separated list of allowed CORS origins, or "*" to allow any origin.
+# Leave empty to disable CORS headers entirely.
+# Example: "https://my-page.pages.dev,https://other.workers.dev"
+CORS_ORIGINS = ""
 
 [observability]
 enabled = true

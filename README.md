@@ -242,6 +242,31 @@ The worker reads these runtime env vars from `wrangler.toml` `[vars]` (with defa
 | `MAX_HOPS`             | `10`    | Max number of hops before stopping with `max_hops_reached`.                              |
 | `UPSTREAM_TIMEOUT_MS`  | `8000`  | Per-hop timeout in milliseconds before `upstream_timeout`.                               |
 | `CONTINUE_HOP_DOMAINS` | `""`    | Optional comma-separated custom domains to continue across after cross-domain redirects. |
+| `CORS_ORIGINS`         | `""`    | Optional. See [CORS](#cors) below.                                                       |
+
+## CORS
+
+By default the worker sends no CORS headers. Set `CORS_ORIGINS` in `wrangler.toml` (or as a Cloudflare secret/var) to enable cross-origin access from other workers or pages:
+
+```toml
+# Allow any origin — useful for public APIs
+CORS_ORIGINS = "*"
+
+# Allow specific origins (comma-separated)
+CORS_ORIGINS = "https://my-page.pages.dev,https://other-worker.workers.dev"
+```
+
+When an origin is permitted the worker adds the following headers to every response:
+
+```
+Access-Control-Allow-Origin: <origin>   (or * for wildcard)
+Access-Control-Allow-Methods: GET, POST
+Access-Control-Allow-Headers: Content-Type
+Access-Control-Max-Age: 86400
+Vary: Origin                            (only for explicit origin lists)
+```
+
+`OPTIONS` preflight requests return `204 No Content` with the same CORS headers when the requesting origin is allowed. When `CORS_ORIGINS` is empty or the origin is not in the list, `OPTIONS` falls through to the normal `405` response.
 
 ## Error responses
 
