@@ -44,6 +44,12 @@ Optional flag to disable `http`/`https` `Location` scheme enforcement for user-a
 curl "https://<your-worker>.workers.dev?url=bit.ly/abc123&user-agent=ios,android&enforce-http-scheme=false"
 ```
 
+Optional flag to extract and include raw response body text in each resolve hop (omitted by default):
+
+```bash
+curl "https://<your-worker>.workers.dev?url=bit.ly/abc123&extract-response-body=true"
+```
+
 Optional debug mode to resolve and include worker egress IP (will check IP via AWS API):
 
 ```bash
@@ -73,6 +79,7 @@ curl -X POST "https://<your-worker>.workers.dev" \
 - The worker also includes a built-in URL shortener domain list (generated into `src/url-shortener-domains.json`) and continues across those domains automatically.
 - When no valid user-agent types are provided, no User-Agent header is sent upstream.
 - Optional query param `debug=true` enables worker IP lookup; by default IP lookup is skipped.
+- Optional query param `extract-response-body=true` includes the raw response body text in each `type=resolve` hop under `response_body`; omitted by default.
 
 ## Response
 
@@ -194,6 +201,7 @@ Each hop includes:
   - `request.url`: upstream URL requested for that hop.
   - `next_url`: resolved `Location` URL (or `null`).
   - `status`: upstream response status for the hop.
+  - `response_body`: raw response body text for this hop (only present when `extract-response-body=true`).
   - `request.user_agents`: ordered User-Agents attempted for that hop, in first-to-last attempt order, each with:
     - `type`
     - raw header `value` (`null` for `type=none`)

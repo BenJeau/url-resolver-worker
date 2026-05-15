@@ -668,6 +668,68 @@ describe("url-resolver worker", () => {
     });
   });
 
+  describe("extract-response-body flag", () => {
+    it("includes response_body on each resolve hop when extract-response-body=true", async () => {
+      installUpstreamMock({
+        "https://hop-bodies.test/start": () =>
+          new Response(null, {
+            status: 302,
+            headers: { location: "/done" },
+          }),
+        "https://hop-bodies.test/done": () =>
+          new Response("<html>final</html>", { status: 200 }),
+      });
+
+      const response = await SELF.fetch(
+        "https://resolver.test/?url=hop-bodies.test/start&extract-response-body=true",
+      );
+      const payload = await response.json<ResolvePayload>();
+
+      expect(response.status).toBe(200);
+      expect(payload.stop_reason).toBe("non_redirect_status");
+      expect(payload.hops).toHaveLength(2);
+      expect((payload.hops[0] as { response_body?: string }).response_body).toBe("");
+      expect((payload.hops[1] as { response_body?: string }).response_body).toBe(
+        "<html>final</html>",
+      );
+    });
+
+    it("omits response_body from resolve hops when extract-response-body is not set", async () => {
+      installUpstreamMock({
+        "https://no-bodies.test/": () =>
+          new Response("<html>page</html>", { status: 200 }),
+      });
+
+      const response = await SELF.fetch(
+        "https://resolver.test/?url=no-bodies.test",
+      );
+      const payload = await response.json<ResolvePayload>();
+
+      expect(response.status).toBe(200);
+      expect(payload.hops).toHaveLength(1);
+      expect(
+        (payload.hops[0] as { response_body?: string }).response_body,
+      ).toBeUndefined();
+    });
+
+    it("omits response_body when extract-response-body=false", async () => {
+      installUpstreamMock({
+        "https://bodies-off.test/": () =>
+          new Response("<html>page</html>", { status: 200 }),
+      });
+
+      const response = await SELF.fetch(
+        "https://resolver.test/?url=bodies-off.test&extract-response-body=false",
+      );
+      const payload = await response.json<ResolvePayload>();
+
+      expect(response.status).toBe(200);
+      expect(
+        (payload.hops[0] as { response_body?: string }).response_body,
+      ).toBeUndefined();
+    });
+  });
+
   describe("user-agent", () => {
     it.each(USER_AGENT_HEADER_TYPES)(
       "selects and reuses a %s user agent across hops",

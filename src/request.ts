@@ -35,3 +35,8 @@ export function extractEnforceHttpSchemeFlag(url: URL): boolean {
   const rawEnforce = url.searchParams.get("enforce-http-scheme");
   return rawEnforce?.trim().toLowerCase() !== "false";
 }
+
+export function extractExtractResponseBodyFlag(url: URL): boolean {
+  const raw = url.searchParams.get("extract-response-body");
+  return raw?.trim().toLowerCase() === "true";
+}

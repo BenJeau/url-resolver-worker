@@ -49,6 +49,7 @@ type ResolveHop = {
   status: number;
   timing_ms: number;
   response_headers?: HeaderMap;
+  response_body?: string;
 };
 
 type ExtractionHop = {
@@ -190,6 +191,7 @@ export async function resolveUrl(
   userAgentTypes: UserAgentType[],
   enforceHttpScheme = true,
   continueDomains: ReadonlySet<string>,
+  extractResponseBody = false,
 ): Promise<ResolveResult> {
   const startedAt = performance.now();
   const hops: Array<ResolveHop | ExtractionHop> = [];
@@ -300,6 +302,7 @@ export async function resolveUrl(
     const nextUrl = location
       ? (resolveLocationUrl(location, current)?.toString() ?? null)
       : null;
+    const responseBody = extractResponseBody ? await response.text() : undefined;
 
     status = response.status;
     hops.push({
@@ -313,6 +316,7 @@ export async function resolveUrl(
       status: response.status,
       timing_ms: hopTimingMs,
       response_headers: headersToObject(response.headers),
+      ...(responseBody !== undefined && { response_body: responseBody }),
     });
 
     if (!location) {

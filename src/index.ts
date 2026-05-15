@@ -3,6 +3,7 @@ import { env } from "cloudflare:workers";
 import {
   extractDebugFlag,
   extractEnforceHttpSchemeFlag,
+  extractExtractResponseBodyFlag,
   extractUrl,
 } from "./request";
 import { createContinueDomains } from "./continue-hop-domains";
@@ -28,6 +29,7 @@ export default {
     const userAgentTypes = extractUserAgentTypes(url);
     const debug = extractDebugFlag(url);
     const enforceHttpScheme = extractEnforceHttpSchemeFlag(url);
+    const extractResponseBody = extractExtractResponseBodyFlag(url);
     const continueDomains = createContinueDomains(env.CONTINUE_HOP_DOMAINS);
     if (!target) {
       return json(
@@ -39,7 +41,7 @@ export default {
     try {
       const [workerInfo, result] = await Promise.all([
         getWorkerInfo(request, debug),
-        resolveUrl(target, userAgentTypes, enforceHttpScheme, continueDomains),
+        resolveUrl(target, userAgentTypes, enforceHttpScheme, continueDomains, extractResponseBody),
       ]);
       result["worker"] = workerInfo;
       return json(result, 200);
