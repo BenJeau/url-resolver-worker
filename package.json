@@ -9,7 +9,7 @@
     "generate-url-shortener-domains": "node scripts/generate-url-shortener-domains.mjs",
     "generate-user-agents": "node scripts/generate-user-agent-pools.mjs",
     "generate-types": "wrangler types",
-    "check": "generate-types && tsc --noEmit",
+    "check": "npm run generate-types && tsc --noEmit",
     "test": "vitest run",
     "test:watch": "vitest"
   },

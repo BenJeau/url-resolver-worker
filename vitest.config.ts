@@ -7,6 +7,11 @@ export default defineConfig({
       wrangler: {
         configPath: "./wrangler.toml",
       },
+      miniflare: {
+        bindings: {
+          CORS_ORIGINS: "",
+        },
+      },
     }),
   ],
   test: {

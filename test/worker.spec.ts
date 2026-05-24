@@ -7,6 +7,33 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import { SELF } from "cloudflare:test";
 
 type UpstreamHandler = (request: Request) => Response | Promise<Response>;
+type ResolveHopPayload = {
+  type: "resolve";
+  request: {
+    url: string;
+    user_agents?: Array<{
+      type: UserAgentType;
+      value: string | null;
+      retry_reason?:
+        | "app_store_redirect"
+        | "non_http_https_scheme"
+        | "non_redirect_status"
+        | "missing_location_header"
+        | "invalid_location_header"
+        | "same_url_redirect"
+        | "upstream_timeout";
+      resolved_url?: string | null;
+    }>;
+  };
+  next_url: string | null;
+  status: number;
+  timing_ms?: number;
+  response?: {
+    headers: Record<string, string>;
+    body?: string;
+  };
+};
+
 type ResolvePayload = {
   urls: {
     input: string;
@@ -19,28 +46,14 @@ type ResolvePayload = {
   stop_reason: string;
   redirects_followed: number;
   status: number;
-  hops: Array<{
-    type: "resolve" | "extraction";
-    request?: {
-      url: string;
-      user_agents?: Array<{
-        type: UserAgentType;
-        value: string | null;
-        retry_reason?:
-          | "app_store_redirect"
-          | "non_http_https_scheme"
-          | "non_redirect_status"
-          | "missing_location_header"
-          | "invalid_location_header"
-          | "same_url_redirect"
-          | "upstream_timeout";
-        resolved_url?: string | null;
-      }>;
-    };
-    next_url: string | null | string;
-    status?: number;
-    rule_id?: string;
-  }>;
+  hops: Array<
+    | ResolveHopPayload
+    | {
+        type: "extraction";
+        next_url: string;
+        rule_id: string;
+      }
+  >;
   worker: { ip: string | null };
 };
 
@@ -632,7 +645,8 @@ describe("url-resolver worker", () => {
             status: 302,
             headers: { location: "https://www.example.com/final" },
           }),
-        "https://www.example.com/final": () => new Response("ok", { status: 200 }),
+        "https://www.example.com/final": () =>
+          new Response("ok", { status: 200 }),
       });
 
       const response = await SELF.fetch(
@@ -770,7 +784,7 @@ describe("url-resolver worker", () => {
   });
 
   describe("extract-response-body flag", () => {
-    it("includes response_body on each resolve hop when extract-response-body=true", async () => {
+    it("includes response.body on each resolve hop when extract-response-body=true", async () => {
       installUpstreamMock({
         "https://hop-bodies.test/start": () =>
           new Response(null, {
@@ -789,13 +803,11 @@ describe("url-resolver worker", () => {
       expect(response.status).toBe(200);
       expect(payload.stop_reason).toBe("non_redirect_status");
       expect(payload.hops).toHaveLength(2);
-      expect((payload.hops[0] as { response_body?: string }).response_body).toBe("");
-      expect((payload.hops[1] as { response_body?: string }).response_body).toBe(
-        "<html>final</html>",
-      );
+      expect(payload.hops[0]?.response?.body).toBe("");
+      expect(payload.hops[1]?.response?.body).toBe("<html>final</html>");
     });
 
-    it("omits response_body from resolve hops when extract-response-body is not set", async () => {
+    it("omits response.body from resolve hops when extract-response-body is not set", async () => {
       installUpstreamMock({
         "https://no-bodies.test/": () =>
           new Response("<html>page</html>", { status: 200 }),
@@ -808,12 +820,10 @@ describe("url-resolver worker", () => {
 
       expect(response.status).toBe(200);
       expect(payload.hops).toHaveLength(1);
-      expect(
-        (payload.hops[0] as { response_body?: string }).response_body,
-      ).toBeUndefined();
+      expect(payload.hops[0]?.response?.body).toBeUndefined();
     });
 
-    it("omits response_body when extract-response-body=false", async () => {
+    it("omits response.body when extract-response-body=false", async () => {
       installUpstreamMock({
         "https://bodies-off.test/": () =>
           new Response("<html>page</html>", { status: 200 }),
@@ -825,9 +835,25 @@ describe("url-resolver worker", () => {
       const payload = await response.json<ResolvePayload>();
 
       expect(response.status).toBe(200);
-      expect(
-        (payload.hops[0] as { response_body?: string }).response_body,
-      ).toBeUndefined();
+      expect(payload.hops[0]?.response?.body).toBeUndefined();
+    });
+
+    it("always includes response.headers on resolve hops", async () => {
+      installUpstreamMock({
+        "https://hop-headers.test/": () =>
+          new Response("ok", {
+            status: 200,
+            headers: { "x-test": "value" },
+          }),
+      });
+
+      const response = await SELF.fetch(
+        "https://resolver.test/?url=hop-headers.test",
+      );
+      const payload = await response.json<ResolvePayload>();
+
+      expect(response.status).toBe(200);
+      expect(payload.hops[0]?.response?.headers?.["x-test"]).toBe("value");
     });
   });
 

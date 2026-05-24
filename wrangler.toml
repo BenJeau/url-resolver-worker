@@ -1,7 +1,7 @@
 name = "url-resolver"
 main = "src/index.ts"
 compatibility_date = "2026-03-18"
-workers_dev = true
+workers_dev = false
 preview_urls = false
 
 [vars]
@@ -11,7 +11,7 @@ CONTINUE_HOP_DOMAINS = ""
 # Comma-separated list of allowed CORS origins, or "*" to allow any origin.
 # Leave empty to disable CORS headers entirely.
 # Example: "https://my-page.pages.dev,https://other.workers.dev"
-CORS_ORIGINS = ""
+CORS_ORIGINS = "*"
 
 [observability]
 enabled = true

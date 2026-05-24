@@ -39,6 +39,11 @@ type UserAgentRetryDetails = {
   resolved_url: string | null;
 };
 
+type ResolveHopResponse = {
+  headers: HeaderMap;
+  body?: string;
+};
+
 type ResolveHop = {
   type: "resolve";
   request: {
@@ -48,8 +53,7 @@ type ResolveHop = {
   next_url: string | null;
   status: number;
   timing_ms: number;
-  response_headers?: HeaderMap;
-  response_body?: string;
+  response?: ResolveHopResponse;
 };
 
 type ExtractionHop = {
@@ -302,7 +306,7 @@ export async function resolveUrl(
     const nextUrl = location
       ? (resolveLocationUrl(location, current)?.toString() ?? null)
       : null;
-    const responseBody = extractResponseBody ? await response.text() : undefined;
+    const hopBody = extractResponseBody ? await response.text() : undefined;
 
     status = response.status;
     hops.push({
@@ -315,8 +319,10 @@ export async function resolveUrl(
       next_url: nextUrl,
       status: response.status,
       timing_ms: hopTimingMs,
-      response_headers: headersToObject(response.headers),
-      ...(responseBody !== undefined && { response_body: responseBody }),
+      response: {
+        headers: headersToObject(response.headers),
+        ...(hopBody !== undefined && { body: hopBody }),
+      },
     });
 
     if (!location) {
