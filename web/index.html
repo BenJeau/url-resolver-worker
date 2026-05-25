@@ -671,8 +671,8 @@
 
       .brand-github {
         align-items: center;
-        background: var(--surface-2);
-        border: 1px solid var(--border);
+        background: transparent;
+        border: none;
         border-radius: var(--radius);
         color: var(--muted);
         display: flex;
@@ -680,16 +680,12 @@
         height: 36px;
         justify-content: center;
         transition:
-          border-color 0.3s var(--ease-out),
           color 0.3s var(--ease-out),
-          background 0.3s var(--ease-out),
           transform 0.15s var(--ease-out);
         width: 36px;
       }
 
       .brand-github:hover {
-        background: var(--github-hover-bg);
-        border-color: var(--accent);
         color: var(--accent);
       }
 
@@ -741,11 +737,16 @@
       }
 
       .sidebar-rail-brand {
+        border-radius: 10px;
+        color: inherit;
         flex-shrink: 0;
         margin-bottom: 18px;
         opacity: 0;
+        padding: 4px 0;
+        text-decoration: none;
         transform: translateY(-6px);
         transition:
+          background 0.25s var(--ease-out),
           opacity 0.32s var(--ease-out),
           transform 0.32s var(--ease-out);
       }
@@ -754,6 +755,18 @@
         opacity: 1;
         transform: translateY(0);
         transition-delay: 0.05s;
+      }
+
+      .sidebar-rail-brand:hover .sidebar-rail-monogram {
+        color: var(--text);
+      }
+
+      .sidebar-rail-brand:active {
+        transform: scale(0.96);
+      }
+
+      main.is-sidebar-collapsed .sidebar-rail-brand:active {
+        transform: scale(0.96);
       }
 
       .sidebar-rail-monogram {
@@ -766,7 +779,7 @@
         gap: 1px;
         letter-spacing: -0.05em;
         line-height: 1;
-        writing-mode: vertical-rl;
+        writing-mode: sideways-lr;
       }
 
       .sidebar-rail-monogram-accent {
@@ -811,7 +824,6 @@
       }
 
       .sidebar-rail-action:hover {
-        background: var(--overlay-hover);
         color: var(--text);
       }
 
@@ -871,6 +883,174 @@
         animation: rail-signal-pulse 2.6s var(--ease-out) infinite;
       }
 
+      .sidebar-rail-link {
+        gap: 0;
+        text-decoration: none;
+      }
+
+      .sidebar-rail-request {
+        align-items: center;
+        display: none;
+        flex: 1;
+        flex-direction: column;
+        gap: 10px;
+        justify-content: center;
+        min-height: 0;
+        overflow: hidden;
+        padding: 2px 0;
+        width: 100%;
+      }
+
+      main.is-sidebar-collapsed .sidebar-rail-request {
+        display: flex;
+      }
+
+      .sidebar-rail-url {
+        align-items: center;
+        background: transparent;
+        border: none;
+        border-radius: 8px;
+        color: inherit;
+        cursor: pointer;
+        display: flex;
+        flex: 1 1 0;
+        justify-content: center;
+        min-height: 0;
+        opacity: 0;
+        overflow: hidden;
+        padding: 4px 0;
+        transform: translateY(6px);
+        transition:
+          background 0.25s var(--ease-out),
+          opacity 0.32s var(--ease-out),
+          transform 0.32s var(--ease-out);
+        width: 100%;
+      }
+
+      main.is-sidebar-collapsed .sidebar-rail-url {
+        opacity: 1;
+        transform: translateY(0);
+        transition-delay: 0.14s;
+      }
+
+      .sidebar-rail-url:active {
+        transform: scale(0.98);
+      }
+
+      main.is-sidebar-collapsed .sidebar-rail-url:active {
+        transform: scale(0.98);
+      }
+
+      .sidebar-rail-url-text {
+        color: var(--text);
+        display: block;
+        font-family: var(--mono);
+        font-size: 0.625rem;
+        font-weight: 500;
+        letter-spacing: 0.02em;
+        line-height: 1.35;
+        max-height: 100%;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        text-orientation: mixed;
+        word-break: break-all;
+        writing-mode: sideways-lr;
+      }
+
+      .sidebar-rail-url[data-empty="true"] .sidebar-rail-url-text {
+        color: var(--hint);
+        font-style: italic;
+      }
+
+      .sidebar-rail-stats {
+        align-items: center;
+        display: flex;
+        flex-direction: column;
+        flex-shrink: 0;
+        gap: 10px;
+        width: 100%;
+        margin-bottom: 20px;
+      }
+
+      .sidebar-rail-stat {
+        align-items: center;
+        display: flex;
+        flex-direction: column;
+        gap: 2px;
+        opacity: 0;
+        transform: translateY(6px);
+        transition:
+          opacity 0.32s var(--ease-out),
+          transform 0.32s var(--ease-out);
+      }
+
+      main.is-sidebar-collapsed .sidebar-rail-stat {
+        opacity: 1;
+        transform: translateY(0);
+        transition-delay: calc(0.16s + var(--i, 0) * 0.06s);
+      }
+
+      .sidebar-rail-stat-val {
+        color: var(--text);
+        font-family: var(--mono);
+        font-size: 0.625rem;
+        font-variant-numeric: tabular-nums;
+        font-weight: 600;
+        line-height: 1;
+      }
+
+      .sidebar-rail-stat[data-empty="true"] .sidebar-rail-stat-val {
+        color: var(--hint);
+      }
+
+      .sidebar-rail-stat-val.is-2xx {
+        color: #15803d;
+      }
+
+      .sidebar-rail-stat-val.is-3xx {
+        color: var(--accent);
+      }
+
+      .sidebar-rail-stat-val.is-4xx {
+        color: #dc2626;
+      }
+
+      .sidebar-rail-stat-val.is-5xx {
+        color: #b91c1c;
+      }
+
+      @media (prefers-color-scheme: dark) {
+        .sidebar-rail-stat-val.is-2xx {
+          color: #6ee7a0;
+        }
+
+        .sidebar-rail-stat-val.is-4xx {
+          color: #fca5a5;
+        }
+
+        .sidebar-rail-stat-val.is-5xx {
+          color: #f87171;
+        }
+      }
+
+      .sidebar-rail-stat-label {
+        color: var(--hint);
+        font-family: var(--mono);
+        font-size: 0.5rem;
+        font-weight: 500;
+        letter-spacing: 0.08em;
+        line-height: 1;
+        text-transform: uppercase;
+      }
+
+      .sidebar-rail-bottom {
+        align-items: center;
+        display: flex;
+        flex-direction: column;
+        flex-shrink: 0;
+        width: 100%;
+      }
+
       @keyframes rail-signal-pulse {
         0%,
         100% {
@@ -882,30 +1062,6 @@
           opacity: 0.55;
           transform: scale(0.82);
         }
-      }
-
-      .sidebar-rail-divider {
-        background: var(--divider);
-        display: none;
-        flex-shrink: 0;
-        height: 1px;
-        margin: 4px 10px 0;
-        width: calc(100% - 20px);
-      }
-
-      main.is-sidebar-collapsed .sidebar-rail-divider {
-        display: block;
-        opacity: 0;
-        transform: scaleX(0.6);
-        transition:
-          opacity 0.28s var(--ease-out),
-          transform 0.28s var(--ease-out);
-        transition-delay: 0.2s;
-      }
-
-      main.is-sidebar-collapsed.is-sidebar-rail-ready .sidebar-rail-divider {
-        opacity: 1;
-        transform: scaleX(1);
       }
 
       .sidebar-toggle-btn {
@@ -938,6 +1094,11 @@
         opacity: 1;
         transform: translateY(0);
         transition-delay: 0.24s;
+      }
+
+      main.is-sidebar-collapsed .sidebar-toggle-btn:hover {
+        background: transparent;
+        color: var(--accent);
       }
 
       .sidebar-toggle-btn:hover {
@@ -975,8 +1136,18 @@
         text-underline-offset: 2px;
       }
 
+      .request-sidebar-footer a.sidebar-rail-brand,
+      .request-sidebar-footer a.sidebar-rail-link {
+        text-decoration: none;
+      }
+
       .request-sidebar-footer a:hover {
         color: var(--accent);
+      }
+
+      .request-sidebar-footer a.sidebar-rail-brand:hover,
+      .request-sidebar-footer a.sidebar-rail-link:hover {
+        text-decoration: none;
       }
 
       .brand-meta {
@@ -3432,11 +3603,16 @@
 
       <div class="request-sidebar-footer">
         <div class="sidebar-rail-content">
-          <div class="sidebar-rail-brand" aria-hidden="true">
+          <a
+            href="./"
+            class="sidebar-rail-brand"
+            aria-label="URL Resolver home"
+            title="Home"
+          >
             <span class="sidebar-rail-monogram">
               <span class="sidebar-rail-monogram-accent">U</span>R
             </span>
-          </div>
+          </a>
           <nav class="sidebar-rail-dock" aria-label="Quick actions">
             <button
               type="button"
@@ -3470,7 +3646,47 @@
               <span class="sidebar-rail-action-count" id="railHistoryCount" data-count="0">0</span>
             </button>
           </nav>
-          <div class="sidebar-rail-divider" aria-hidden="true"></div>
+          <div class="sidebar-rail-request" aria-label="Current request">
+            <button
+              type="button"
+              class="sidebar-rail-url"
+              id="railUrlDisplay"
+              data-empty="true"
+              aria-label="Edit URL"
+              title="Edit URL"
+            >
+              <span class="sidebar-rail-url-text" id="railUrlText">Enter URL</span>
+            </button>
+            <div class="sidebar-rail-stats" aria-label="Last resolve">
+              <div class="sidebar-rail-stat" id="railStatHops" data-empty="true" style="--i: 0">
+                <span class="sidebar-rail-stat-val" id="railHopVal">—</span>
+                <span class="sidebar-rail-stat-label">Hops</span>
+              </div>
+              <div class="sidebar-rail-stat" id="railStatStatus" data-empty="true" style="--i: 1">
+                <span class="sidebar-rail-stat-val" id="railStatusVal">—</span>
+                <span class="sidebar-rail-stat-label">Status</span>
+              </div>
+              <div class="sidebar-rail-stat" id="railStatTiming" data-empty="true" style="--i: 2">
+                <span class="sidebar-rail-stat-val" id="railTimingVal">—</span>
+                <span class="sidebar-rail-stat-label">ms</span>
+              </div>
+            </div>
+          </div>
+          <div class="sidebar-rail-bottom">
+            <a
+              href="https://github.com/BenJeau/url-resolver-worker"
+              class="sidebar-rail-action sidebar-rail-link"
+              style="--i: 3"
+              target="_blank"
+              rel="noopener noreferrer"
+              aria-label="View source on GitHub"
+              title="GitHub"
+            >
+              <svg class="sidebar-rail-action-icon" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true">
+                <path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"/>
+              </svg>
+            </a>
+          </div>
         </div>
         <div class="request-sidebar-footer-inner">
           <span>Made by <a href="https://github.com/BenJeau" target="_blank" rel="noopener noreferrer">BenJeau</a></span>
@@ -4460,6 +4676,7 @@
         $("resultView").innerHTML = "";
         closeJsonModal();
         syncResultPanelEmptyState();
+        syncRailOverview();
       }
 
       function renderResult(data, httpStatus) {
@@ -4499,6 +4716,7 @@
           ${renderWorkerHtml(data.worker)}`;
 
         bindExplainables($("resultView"));
+        syncRailOverview();
       }
 
       function renderHistoryList() {
@@ -4730,6 +4948,20 @@
         return !MOBILE_LAYOUT_MQ.matches;
       }
 
+      function syncRailStat(statId, valId, value, statusForClass) {
+        const stat = $(statId);
+        const val = $(valId);
+        if (!stat || !val) return;
+
+        const empty = value == null;
+        stat.dataset.empty = empty ? "true" : "false";
+        val.textContent = empty ? "—" : value;
+        val.className = "sidebar-rail-stat-val";
+        if (!empty && statusForClass != null) {
+          val.classList.add(httpStatusClass(statusForClass));
+        }
+      }
+
       function syncRailOverview() {
         const countEl = $("railHistoryCount");
         if (countEl) {
@@ -4744,6 +4976,33 @@
           signal.hidden = !hasUrl;
           signal.classList.toggle("is-live", hasUrl);
         }
+
+        const url = $("urlInput").value.trim();
+        const urlDisplay = $("railUrlDisplay");
+        const urlText = $("railUrlText");
+        if (urlDisplay && urlText) {
+          const empty = !url;
+          urlDisplay.dataset.empty = empty ? "true" : "false";
+          urlText.textContent = empty ? "Enter URL" : url;
+        }
+
+        const hasResult = lastResult && !lastResult.error;
+        syncRailStat(
+          "railStatHops",
+          "railHopVal",
+          hasResult && lastResult.hops ? lastResult.hops.length : null,
+        );
+        syncRailStat(
+          "railStatStatus",
+          "railStatusVal",
+          hasResult && lastResult.status != null ? lastResult.status : null,
+          hasResult ? lastResult.status : null,
+        );
+        syncRailStat(
+          "railStatTiming",
+          "railTimingVal",
+          hasResult && lastResult.timing_ms != null ? lastResult.timing_ms : null,
+        );
       }
 
       function expandSidebar({ focus, scrollTo } = {}) {
@@ -4807,6 +5066,8 @@
         });
 
         bindPress("railUrlBtn", () => expandSidebar({ focus: "url" }));
+
+        bindPress("railUrlDisplay", () => expandSidebar({ focus: "url" }));
 
         bindPress("railHistoryBtn", () => {
           expandSidebar({ scrollTo: "history" });
