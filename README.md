@@ -34,40 +34,28 @@ Supported methods: `GET`, `POST`.
 curl "https://<your-worker>.workers.dev?url=bit.ly/abc123"
 ```
 
-Optional platform-specific upstream user-agent pool:
+Query parameters (all optional except `url` on GET):
+
+| Parameter               | Default  | Description                                                                                                                                                                                                  |
+| ----------------------- | -------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `url`                   | —        | Target URL to resolve. Required for GET; use POST body for POST. Scheme-less values get `https://` prepended.                                                                                                |
+| `user-agent`            | _(none)_ | Comma-separated ordered UA chain. Values: `ios`, `android`, `mac`, `windows`, `none` (case-insensitive). One random string per type is selected and reused across hops. `none` sends no `User-Agent` header. |
+| `enforce-http-scheme`   | `true`   | When `true`, UA retries continue until `Location` resolves to `http`/`https`. Set `false` to allow any scheme.                                                                                               |
+| `stop-on-cross-domain`  | `true`   | When `true`, stop at cross-domain redirects outside the built-in shortener / `CONTINUE_HOP_DOMAINS` set. Set `false` to follow redirects to any host until another stop condition.                           |
+| `extract-response-body` | `false`  | Set `true` to include raw response body text in each `type=resolve` hop under `response.body`.                                                                                                               |
+| `debug`                 | `false`  | Set `true` to resolve and include worker egress IP in `worker.ip`.                                                                                                                                           |
+
+Examples:
 
 ```bash
-curl "https://<your-worker>.workers.dev?url=bit.ly/abc123&user-agent=ios"
-```
-
-Optional comma-separated user-agent chain (tries in this order, until a valid `Location` is found):
-
-```bash
-curl "https://<your-worker>.workers.dev?url=bit.ly/abc123&user-agent=ios,android,windows"
-```
-
-Optional explicit no-header user-agent attempt (`none`):
-
-```bash
-curl "https://<your-worker>.workers.dev?url=bit.ly/abc123&user-agent=ios,none,android"
-```
-
-Optional flag to disable `http`/`https` `Location` scheme enforcement for user-agent retries:
-
-```bash
+# User-agent chain with scheme enforcement disabled
 curl "https://<your-worker>.workers.dev?url=bit.ly/abc123&user-agent=ios,android&enforce-http-scheme=false"
-```
 
-Optional flag to extract and include raw response body text in each resolve hop under `response.body` (omitted by default):
+# Follow redirects across domains to the end URL
+curl "https://<your-worker>.workers.dev?url=bit.ly/abc123&stop-on-cross-domain=false"
 
-```bash
-curl "https://<your-worker>.workers.dev?url=bit.ly/abc123&extract-response-body=true"
-```
-
-Optional debug mode to resolve and include worker egress IP (will check IP via AWS API):
-
-```bash
-curl "https://<your-worker>.workers.dev?url=bit.ly/abc123&debug=true"
+# Verbose hop bodies and worker IP
+curl "https://<your-worker>.workers.dev?url=bit.ly/abc123&extract-response-body=true&debug=true"
 ```
 
 ### POST with body
@@ -85,15 +73,8 @@ curl -X POST "https://<your-worker>.workers.dev" \
 - Query param `url` is checked first.
 - If not provided, POST body is used.
 - If scheme is missing, `https://` is prepended.
-- Optional query param `user-agent` supports: `ios`, `android`, `mac`, `windows`, `none` (case-insensitive).
-- `user-agent` accepts a single type or a comma-separated ordered list (for example `?user-agent=ios,android`).
-- One random User-Agent string is selected for each provided platform type in order and reused across hops for that request.
-- `none` means "attempt this step without sending a `User-Agent` header" and can be mixed into ordered chains.
-- Optional query param `enforce-http-scheme` defaults to `true`. When `true`, fallback retries continue until `Location` resolves to `http`/`https` (or the UA list is exhausted). Set `false` to allow any `Location` scheme.
-- The worker also includes a built-in URL shortener domain list (generated into `src/url-shortener-domains.json`) and continues across those domains automatically.
-- When no valid user-agent types are provided, no User-Agent header is sent upstream.
-- Optional query param `debug=true` enables worker IP lookup; by default IP lookup is skipped.
-- Optional query param `extract-response-body=true` includes the raw response body text in each `type=resolve` hop under `response.body`; omitted by default.
+- See the [query parameters](#get-with-query-param) table for optional flags and defaults.
+- The worker includes a built-in URL shortener domain list (generated into `src/url-shortener-domains.json`) and continues across those domains automatically unless `stop-on-cross-domain=false`.
 
 ## Response
 
@@ -166,9 +147,9 @@ Example shape:
 - User-agent pools are pre-generated into `src/user-agent-pools.json` from Microlink's `user` list (`https://microlink.io/user-agents.json`)
 - URL shortener continue domains are pre-generated into `src/url-shortener-domains.json` from HaGeZi's list (`https://raw.githubusercontent.com/hagezi/dns-blocklists/refs/heads/main/wildcard/urlshortener-onlydomains.txt`)
 - Worker egress IP lookup is only executed when `?debug=true`; otherwise `worker.ip` is `null`.
-- Redirects are only followed while host remains equal to the initial normalized host
-- Exception: when a redirect target host matches the built-in shortener domain set (or `CONTINUE_HOP_DOMAINS` env var values), hop resolution continues
-- If next host is different, that URL becomes destination and traversal stops
+- Redirects are only followed while host remains equal to the initial normalized host, unless `stop-on-cross-domain=false`
+- Exception: when a redirect target host matches the built-in shortener domain set (or `CONTINUE_HOP_DOMAINS` env var values), hop resolution continues even with the default `stop-on-cross-domain=true`
+- If next host is different and cross-domain stopping is enabled, that URL becomes destination and traversal stops
 - Final `urls.destination` is always passed through embedded URL extraction
 - `urls.raw_destination` captures the URL before that final extraction pass
 - `embedded_url_rule` is the ID of the embedded URL rule that most directly produced `urls.destination`; `null` when no embedded rule was applied
@@ -236,15 +217,15 @@ Each hop includes:
 
 Possible `stop_reason` values:
 
-| `stop_reason`             | Meaning                                                                                    |
-| ------------------------- | ------------------------------------------------------------------------------------------ |
-| `non_redirect_status`     | Last hop was not redirectable after UA retries (for example `200`, `404`).                 |
-| `missing_location_header` | Hop was 3xx but had no `Location` header.                                                  |
-| `invalid_location_header` | `Location` existed but could not be parsed into a valid absolute URL.                      |
-| `same_url_redirect`       | Redirect target is exactly the same URL as the current hop.                                |
-| `cross_domain_redirect`   | Redirect target host differs from the original host and is not in the continue-domain set. |
-| `max_hops_reached`        | Reached hop limit before another terminal condition.                                       |
-| `upstream_timeout`        | Upstream request exceeded the per-hop timeout.                                             |
+| `stop_reason`             | Meaning                                                                                                                           |
+| ------------------------- | --------------------------------------------------------------------------------------------------------------------------------- |
+| `non_redirect_status`     | Last hop was not redirectable after UA retries (for example `200`, `404`).                                                        |
+| `missing_location_header` | Hop was 3xx but had no `Location` header.                                                                                         |
+| `invalid_location_header` | `Location` existed but could not be parsed into a valid absolute URL.                                                             |
+| `same_url_redirect`       | Redirect target is exactly the same URL as the current hop.                                                                       |
+| `cross_domain_redirect`   | Redirect target host differs from the original host and is not in the continue-domain set (`stop-on-cross-domain=true`, default). |
+| `max_hops_reached`        | Reached hop limit before another terminal condition.                                                                              |
+| `upstream_timeout`        | Upstream request exceeded the per-hop timeout.                                                                                    |
 
 ## Security controls built in
 

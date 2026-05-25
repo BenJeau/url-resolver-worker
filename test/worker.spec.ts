@@ -620,6 +620,59 @@ describe("url-resolver worker", () => {
       expect(payload.hops).toHaveLength(1);
     });
 
+    it("follows cross-domain redirects when stop-on-cross-domain=false", async () => {
+      installUpstreamMock({
+        "https://short.ly/start": () =>
+          new Response(null, {
+            status: 302,
+            headers: { location: "https://example.com/hop" },
+          }),
+        "https://example.com/hop": () =>
+          new Response("done", { status: 200 }),
+      });
+
+      const response = await SELF.fetch(
+        "https://resolver.test/?url=short.ly/start&stop-on-cross-domain=false",
+      );
+      const payload = await response.json<ResolvePayload>();
+
+      expect(response.status).toBe(200);
+      expect(payload.stop_reason).toBe("non_redirect_status");
+      expect(payload.redirects_followed).toBe(1);
+      expect(payload.status).toBe(200);
+      expect(payload.urls.destination).toBe("https://example.com/hop");
+      expect(payload.hops).toHaveLength(2);
+    });
+
+    it("follows multi-hop cross-domain chain when stop-on-cross-domain=false", async () => {
+      installUpstreamMock({
+        "https://origin.test/start": () =>
+          new Response(null, {
+            status: 302,
+            headers: { location: "https://other.test/hop" },
+          }),
+        "https://other.test/hop": () =>
+          new Response(null, {
+            status: 302,
+            headers: { location: "https://destination.test/final" },
+          }),
+        "https://destination.test/final": () =>
+          new Response("done", { status: 200 }),
+      });
+
+      const response = await SELF.fetch(
+        "https://resolver.test/?url=origin.test/start&stop-on-cross-domain=%20FaLsE%20",
+      );
+      const payload = await response.json<ResolvePayload>();
+
+      expect(response.status).toBe(200);
+      expect(payload.stop_reason).toBe("non_redirect_status");
+      expect(payload.redirects_followed).toBe(2);
+      expect(payload.status).toBe(200);
+      expect(payload.urls.destination).toBe("https://destination.test/final");
+      expect(payload.hops).toHaveLength(3);
+    });
+
     it("continues through built-in URL shortener domains", async () => {
       const shortenerDomain = builtInContinueDomains[0];
       if (!shortenerDomain) {

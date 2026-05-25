@@ -2593,6 +2593,10 @@
                 enforce-http-scheme
               </label>
               <label>
+                <input type="checkbox" id="stopOnCrossDomain" checked />
+                stop-on-cross-domain
+              </label>
+              <label>
                 <input type="checkbox" id="extractResponseBody" checked />
                 extract-response-body
               </label>
@@ -2790,7 +2794,7 @@
           same_url_redirect:
             "Redirect target is exactly the same URL as the current hop.",
           cross_domain_redirect:
-            "Redirect target host differs from the original host and is not in the shortener continue set.",
+            "Redirect target host differs from the original host and is not in the shortener continue set (when stop-on-cross-domain is on).",
           max_hops_reached:
             "Reached the configured hop limit before another terminal condition.",
           upstream_timeout:
@@ -2887,6 +2891,7 @@
           method: $("methodSelect").value,
           userAgent: [...uaChain],
           enforceHttpScheme: $("enforceHttpScheme").checked,
+          stopOnCrossDomain: $("stopOnCrossDomain").checked,
           extractResponseBody: $("extractResponseBody").checked,
           debug: $("debugFlag").checked,
         };
@@ -2909,6 +2914,9 @@
         }
         if (!state.enforceHttpScheme) {
           params.set("enforce-http-scheme", "false");
+        }
+        if (!state.stopOnCrossDomain) {
+          params.set("stop-on-cross-domain", "false");
         }
         if (!state.extractResponseBody) {
           params.set("extract-response-body", "false");
@@ -2982,6 +2990,7 @@
         setMethod("POST");
         uaChain = [...DEFAULT_UA_CHAIN];
         $("enforceHttpScheme").checked = true;
+        $("stopOnCrossDomain").checked = true;
         $("extractResponseBody").checked = true;
         $("debugFlag").checked = true;
 
@@ -3004,6 +3013,10 @@
           $("enforceHttpScheme").checked =
             params.get("enforce-http-scheme").toLowerCase() !== "false";
         }
+        if (params.has("stop-on-cross-domain")) {
+          $("stopOnCrossDomain").checked =
+            params.get("stop-on-cross-domain").toLowerCase() !== "false";
+        }
         if (params.has("extract-response-body")) {
           $("extractResponseBody").checked =
             params.get("extract-response-body").toLowerCase() !== "false";
@@ -3025,6 +3038,9 @@
         }
         if (!state.enforceHttpScheme) {
           params.set("enforce-http-scheme", "false");
+        }
+        if (!state.stopOnCrossDomain) {
+          params.set("stop-on-cross-domain", "false");
         }
         if (state.extractResponseBody) {
           params.set("extract-response-body", "true");
@@ -3193,6 +3209,7 @@
           request.method === state.method &&
           uaChainEquals(request.userAgent, state.userAgent) &&
           request.enforceHttpScheme === state.enforceHttpScheme &&
+          request.stopOnCrossDomain === state.stopOnCrossDomain &&
           request.extractResponseBody === state.extractResponseBody &&
           request.debug === state.debug
         );
@@ -3676,6 +3693,7 @@
         uaChain = [...entry.request.userAgent];
         renderUaOrder();
         $("enforceHttpScheme").checked = entry.request.enforceHttpScheme;
+        $("stopOnCrossDomain").checked = entry.request.stopOnCrossDomain ?? true;
         $("extractResponseBody").checked = entry.request.extractResponseBody;
         $("debugFlag").checked = entry.request.debug;
         syncConfigOpen();
@@ -3851,6 +3869,7 @@
           if (e.target.closest(".method-pill")) e.preventDefault();
         });
         $("enforceHttpScheme").addEventListener("change", sync);
+        $("stopOnCrossDomain").addEventListener("change", sync);
         $("extractResponseBody").addEventListener("change", sync);
         $("debugFlag").addEventListener("change", sync);
         bindPress("configToggle", () => {

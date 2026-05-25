@@ -40,3 +40,8 @@ export function extractExtractResponseBodyFlag(url: URL): boolean {
   const raw = url.searchParams.get("extract-response-body");
   return raw?.trim().toLowerCase() === "true";
 }
+
+export function extractStopOnCrossDomainFlag(url: URL): boolean {
+  const raw = url.searchParams.get("stop-on-cross-domain");
+  return raw?.trim().toLowerCase() !== "false";
+}

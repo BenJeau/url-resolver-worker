@@ -196,6 +196,7 @@ export async function resolveUrl(
   enforceHttpScheme = true,
   continueDomains: ReadonlySet<string>,
   extractResponseBody = false,
+  stopOnCrossDomain = true,
 ): Promise<ResolveResult> {
   const startedAt = performance.now();
   const hops: Array<ResolveHop | ExtractionHop> = [];
@@ -351,6 +352,7 @@ export async function resolveUrl(
       canonicalHostnameForDomainMatch(next.hostname),
     );
     if (
+      stopOnCrossDomain &&
       !isEquivalentDomain(originHost, next.hostname) &&
       !shouldContinueAcrossDomain
     ) {

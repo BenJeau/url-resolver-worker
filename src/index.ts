@@ -2,6 +2,7 @@ import {
   extractDebugFlag,
   extractEnforceHttpSchemeFlag,
   extractExtractResponseBodyFlag,
+  extractStopOnCrossDomainFlag,
   extractUrl,
 } from "./request";
 import { createContinueDomains } from "./continue-hop-domains";
@@ -56,6 +57,7 @@ async function handleResolve(
   const debug = extractDebugFlag(url);
   const enforceHttpScheme = extractEnforceHttpSchemeFlag(url);
   const extractResponseBody = extractExtractResponseBodyFlag(url);
+  const stopOnCrossDomain = extractStopOnCrossDomainFlag(url);
   const continueDomains = createContinueDomains(env.CONTINUE_HOP_DOMAINS);
   if (!target) {
     return json(
@@ -74,6 +76,7 @@ async function handleResolve(
         enforceHttpScheme,
         continueDomains,
         extractResponseBody,
+        stopOnCrossDomain,
       ),
     ]);
     result["worker"] = workerInfo;
