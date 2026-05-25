@@ -7,6 +7,12 @@
     <link rel="icon" href="favicon.svg" type="image/svg+xml" />
     <link rel="stylesheet" href="fonts/fonts.css" />
     <style>
+      @property --sidebar-width {
+        syntax: "<length>";
+        inherits: false;
+        initial-value: 400px;
+      }
+
       :root {
         color-scheme: light dark;
         --mono: "IBM Plex Mono", ui-monospace, monospace;
@@ -14,6 +20,7 @@
         --display: "Syne", system-ui, sans-serif;
         --radius: 6px;
         --sidebar-radius: 1.25rem;
+        --sidebar-rail-width: 56px;
         --hop-radius: 10px;
         --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
 
@@ -54,6 +61,10 @@
         --history-active-bg: #a1620718;
         --history-header-bg: #a1620724;
         --history-active-dest: #0c7ab8;
+        --hop-closed-bg: #0c7ab803;
+        --hop-closed-bg-hover: #0c7ab806;
+        --hop-closed-extraction-bg: #05966903;
+        --hop-closed-extraction-bg-hover: #05966906;
         --hop-open-bg: linear-gradient(
           90deg,
           #0c7ab820 0%,
@@ -143,6 +154,10 @@
           --history-active-bg: #c4a57418;
           --history-header-bg: #c4a57428;
           --history-active-dest: #7dd3fc;
+          --hop-closed-bg: #5eb8e804;
+          --hop-closed-bg-hover: #5eb8e808;
+          --hop-closed-extraction-bg: #34d39904;
+          --hop-closed-extraction-bg-hover: #34d39908;
           --hop-open-bg: linear-gradient(
             90deg,
             #5eb8e822 0%,
@@ -221,12 +236,45 @@
 
       main {
         display: grid;
-        grid-template-columns: minmax(340px, 400px) minmax(0, 1.55fr);
+        grid-template-columns: var(--sidebar-width) minmax(0, 1.55fr);
         grid-template-rows: 1fr auto;
         flex: 1;
         min-height: 0;
         min-width: 0;
+        transition: --sidebar-width 0.38s var(--ease-out);
         width: 100%;
+      }
+
+      main:not(.is-sidebar-collapsed) {
+        --sidebar-width: 400px;
+      }
+
+      main.is-sidebar-collapsed {
+        --sidebar-width: var(--sidebar-rail-width);
+      }
+
+      main.is-sidebar-collapsed .panel-request {
+        display: none;
+      }
+
+      main.is-sidebar-collapsed .request-sidebar-footer {
+        background:
+          linear-gradient(180deg, color-mix(in srgb, var(--request-stripe) 35%, transparent) 0%, transparent 72px),
+          var(--request-bg);
+        border-top: none;
+        flex-direction: column;
+        grid-row: 1 / -1;
+        justify-content: space-between;
+        min-height: 0;
+        padding: 0;
+      }
+
+      main.is-sidebar-collapsed .request-sidebar-footer-inner {
+        display: none;
+      }
+
+      main.is-sidebar-collapsed .sidebar-rail-content {
+        display: flex;
       }
 
       .panel-request {
@@ -267,6 +315,7 @@
           flex: none;
           min-height: 100dvh;
           overflow: visible;
+          transition: none;
         }
 
         .panel-request {
@@ -297,6 +346,36 @@
 
         .request-sidebar-footer {
           flex: 0 0 auto;
+        }
+
+        main.is-sidebar-collapsed {
+          display: flex;
+          flex-direction: column;
+        }
+
+        main.is-sidebar-collapsed .panel-request {
+          display: flex;
+        }
+
+        main.is-sidebar-collapsed .request-sidebar-footer {
+          border-right: none;
+          box-shadow: none;
+          flex-direction: row;
+          grid-row: auto;
+          justify-content: flex-start;
+          padding: 10px 14px;
+        }
+
+        main.is-sidebar-collapsed .request-sidebar-footer-inner {
+          display: flex;
+        }
+
+        main.is-sidebar-collapsed .sidebar-rail-content {
+          display: none;
+        }
+
+        .sidebar-toggle-btn {
+          display: none !important;
         }
 
         .panel {
@@ -359,6 +438,13 @@
           border-top-left-radius: var(--sidebar-radius);
           box-shadow: inset 1px 0 0 var(--request-shadow);
           overflow: hidden;
+        }
+
+        main.is-sidebar-collapsed .panel-result {
+          border-bottom-left-radius: 0;
+          border-left: none;
+          border-top-left-radius: 0;
+          box-shadow: none;
         }
       }
 
@@ -626,11 +712,256 @@
         color: var(--text);
         display: flex;
         flex-shrink: 0;
-        flex-wrap: wrap;
         font-size: 0.6875rem;
-        gap: 4px 6px;
+        gap: 8px;
+        justify-content: space-between;
         line-height: 1.4;
         padding: 10px 14px;
+      }
+
+      .request-sidebar-footer-inner {
+        align-items: center;
+        display: flex;
+        flex: 1;
+        flex-wrap: wrap;
+        gap: 4px 6px;
+        min-width: 0;
+      }
+
+      .sidebar-rail-content {
+        align-items: center;
+        display: none;
+        flex: 1;
+        flex-direction: column;
+        gap: 0;
+        justify-content: flex-start;
+        min-height: 0;
+        padding: 16px 0 10px;
+        width: 100%;
+      }
+
+      .sidebar-rail-brand {
+        flex-shrink: 0;
+        margin-bottom: 18px;
+        opacity: 0;
+        transform: translateY(-6px);
+        transition:
+          opacity 0.32s var(--ease-out),
+          transform 0.32s var(--ease-out);
+      }
+
+      main.is-sidebar-collapsed .sidebar-rail-brand {
+        opacity: 1;
+        transform: translateY(0);
+        transition-delay: 0.05s;
+      }
+
+      .sidebar-rail-monogram {
+        align-items: center;
+        color: var(--muted);
+        display: flex;
+        font-family: var(--display);
+        font-size: 0.6875rem;
+        font-weight: 800;
+        gap: 1px;
+        letter-spacing: -0.05em;
+        line-height: 1;
+        writing-mode: vertical-rl;
+      }
+
+      .sidebar-rail-monogram-accent {
+        color: var(--accent);
+      }
+
+      .sidebar-rail-dock {
+        align-items: center;
+        display: flex;
+        flex-direction: column;
+        flex-shrink: 0;
+        gap: 2px;
+        width: 100%;
+      }
+
+      .sidebar-rail-action {
+        align-items: center;
+        background: transparent;
+        border: none;
+        border-radius: 10px;
+        color: var(--muted);
+        cursor: pointer;
+        display: flex;
+        flex-direction: column;
+        gap: 4px;
+        opacity: 0;
+        padding: 9px 0;
+        position: relative;
+        transform: translateY(8px);
+        transition:
+          background 0.25s var(--ease-out),
+          color 0.25s var(--ease-out),
+          opacity 0.32s var(--ease-out),
+          transform 0.32s var(--ease-out);
+        width: 44px;
+      }
+
+      main.is-sidebar-collapsed .sidebar-rail-action {
+        opacity: 1;
+        transform: translateY(0);
+        transition-delay: calc(0.1s + var(--i, 0) * 0.07s);
+      }
+
+      .sidebar-rail-action:hover {
+        background: var(--overlay-hover);
+        color: var(--text);
+      }
+
+      .sidebar-rail-action:active {
+        transform: scale(0.96);
+      }
+
+      main.is-sidebar-collapsed .sidebar-rail-action:active {
+        transform: scale(0.96);
+      }
+
+      .sidebar-rail-action-icon {
+        flex-shrink: 0;
+        height: 15px;
+        width: 15px;
+      }
+
+      .sidebar-rail-action-label {
+        font-family: var(--mono);
+        font-size: 0.5625rem;
+        font-weight: 500;
+        letter-spacing: 0.06em;
+        line-height: 1;
+        text-transform: uppercase;
+      }
+
+      .sidebar-rail-action-count {
+        color: var(--history-accent);
+        font-family: var(--mono);
+        font-size: 0.5625rem;
+        font-variant-numeric: tabular-nums;
+        font-weight: 600;
+        line-height: 1;
+        margin-top: -2px;
+      }
+
+      .sidebar-rail-action-count[data-count="0"] {
+        display: none;
+      }
+
+      .sidebar-rail-action-signal {
+        background: var(--accent);
+        border-radius: 50%;
+        box-shadow: 0 0 0 2px var(--request-bg);
+        height: 5px;
+        position: absolute;
+        right: 7px;
+        top: 7px;
+        width: 5px;
+      }
+
+      .sidebar-rail-action-signal[hidden] {
+        display: none;
+      }
+
+      .sidebar-rail-action-signal.is-live {
+        animation: rail-signal-pulse 2.6s var(--ease-out) infinite;
+      }
+
+      @keyframes rail-signal-pulse {
+        0%,
+        100% {
+          opacity: 1;
+          transform: scale(1);
+        }
+
+        50% {
+          opacity: 0.55;
+          transform: scale(0.82);
+        }
+      }
+
+      .sidebar-rail-divider {
+        background: var(--divider);
+        display: none;
+        flex-shrink: 0;
+        height: 1px;
+        margin: 4px 10px 0;
+        width: calc(100% - 20px);
+      }
+
+      main.is-sidebar-collapsed .sidebar-rail-divider {
+        display: block;
+        opacity: 0;
+        transform: scaleX(0.6);
+        transition:
+          opacity 0.28s var(--ease-out),
+          transform 0.28s var(--ease-out);
+        transition-delay: 0.2s;
+      }
+
+      main.is-sidebar-collapsed.is-sidebar-rail-ready .sidebar-rail-divider {
+        opacity: 1;
+        transform: scaleX(1);
+      }
+
+      .sidebar-toggle-btn {
+        align-items: center;
+        background: transparent;
+        border: none;
+        border-radius: var(--radius);
+        color: var(--hint);
+        cursor: pointer;
+        display: inline-flex;
+        flex-shrink: 0;
+        height: 20px;
+        justify-content: center;
+        opacity: 1;
+        transition:
+          background 0.2s var(--ease-out),
+          color 0.2s var(--ease-out),
+          opacity 0.32s var(--ease-out),
+          transform 0.32s var(--ease-out);
+        width: 20px;
+      }
+
+      main.is-sidebar-collapsed .sidebar-toggle-btn {
+        margin-bottom: 14px;
+        opacity: 0;
+        transform: translateY(6px);
+      }
+
+      main.is-sidebar-collapsed.is-sidebar-rail-ready .sidebar-toggle-btn {
+        opacity: 1;
+        transform: translateY(0);
+        transition-delay: 0.24s;
+      }
+
+      .sidebar-toggle-btn:hover {
+        background: var(--overlay-hover);
+        color: var(--accent);
+      }
+
+      .sidebar-toggle-btn:active {
+        transform: scale(0.94);
+      }
+
+      main.is-sidebar-collapsed .sidebar-toggle-btn:active {
+        transform: scale(0.94);
+      }
+
+      .sidebar-toggle-btn .sidebar-toggle-icon {
+        flex-shrink: 0;
+        height: 12px;
+        transition: transform 0.3s var(--ease-out);
+        width: 12px;
+      }
+
+      main.is-sidebar-collapsed .sidebar-toggle-btn .sidebar-toggle-icon {
+        transform: rotate(180deg);
       }
 
       .request-sidebar-footer-sep {
@@ -678,10 +1009,6 @@
         .destination-display .dest-url {
           padding-left: 12px;
         }
-      }
-
-      #resultView {
-        padding-bottom: 12px;
       }
 
       .panel-request .panel-body {
@@ -954,19 +1281,12 @@
       .ua-order-item {
         align-items: center;
         display: inline-flex;
-        font-family: var(--mono);
-        font-size: 0.6875rem;
-        font-weight: 600;
         gap: 3px;
-        height: 22px;
-        letter-spacing: 0.01em;
         line-height: 1;
-        padding: 0 3px 0 5px;
-        text-transform: lowercase;
       }
 
       .ua-order-item.ua-tag {
-        padding: 0 3px 0 5px;
+        padding: 1px 3px 1px 6px;
       }
 
       .ua-order-item .ua-order-index {
@@ -1014,24 +1334,19 @@
 
       .ua-chip {
         align-items: center;
-        background: transparent;
-        border: 1px dashed color-mix(in srgb, var(--border) 85%, var(--muted));
+        border: none;
         border-radius: var(--radius);
-        color: var(--muted);
         cursor: pointer;
         display: inline-flex;
         font-family: var(--mono);
         font-size: 0.6875rem;
         font-weight: 600;
         gap: 2px;
-        height: 22px;
         letter-spacing: 0.01em;
-        padding: 0 7px;
+        padding: 1px 6px;
         text-transform: lowercase;
         transition:
-          border-color 0.3s var(--ease-out),
-          color 0.3s var(--ease-out),
-          background 0.3s var(--ease-out),
+          filter 0.2s var(--ease-out),
           transform 0.15s var(--ease-out);
       }
 
@@ -1039,14 +1354,11 @@
         font-size: 0.75rem;
         font-weight: 500;
         line-height: 1;
-        opacity: 0.65;
+        opacity: 0.55;
       }
 
       .ua-chip:hover {
-        background: var(--accent-dim);
-        border-color: var(--accent);
-        border-style: solid;
-        color: var(--accent);
+        filter: brightness(1.08);
       }
 
       .ua-chip:active {
@@ -1058,8 +1370,7 @@
       }
 
       .ua-chip:focus-visible {
-        box-shadow: 0 0 0 2px var(--accent-dim);
-        outline: 2px solid var(--accent);
+        outline: 2px solid currentColor;
         outline-offset: 1px;
       }
 
@@ -1071,69 +1382,79 @@
         gap: 4px;
       }
 
-      .ua-tag {
+      .ua-tag,
+      .ua-attempt-type {
         border-radius: var(--radius);
         flex-shrink: 0;
         font-family: var(--mono);
-        font-size: 0.625rem;
+        font-size: 0.6875rem;
         font-weight: 600;
-        letter-spacing: 0.02em;
-        padding: 3px 10px;
+        letter-spacing: 0.01em;
+        padding: 1px 6px;
         text-transform: lowercase;
       }
 
-      .ua-tag.ua-ios {
+      .ua-tag.ua-ios,
+      .ua-attempt-type.ua-ios,
+      .ua-chip.ua-ios {
         background: #007aff18;
-        border: 1px solid #007aff55;
         color: #007aff;
       }
 
-      .ua-tag.ua-android {
+      .ua-tag.ua-android,
+      .ua-attempt-type.ua-android,
+      .ua-chip.ua-android {
         background: #3ddc8418;
-        border: 1px solid #3ddc8455;
         color: #1a8f4c;
       }
 
-      .ua-tag.ua-macos {
+      .ua-tag.ua-macos,
+      .ua-attempt-type.ua-macos,
+      .ua-chip.ua-macos {
         background: #8e8e9318;
-        border: 1px solid #8e8e9355;
         color: #636366;
       }
 
-      .ua-tag.ua-windows {
+      .ua-tag.ua-windows,
+      .ua-attempt-type.ua-windows,
+      .ua-chip.ua-windows {
         background: #0078d418;
-        border: 1px solid #0078d455;
         color: #0078d4;
       }
 
-      .ua-tag.ua-none {
+      .ua-tag.ua-none,
+      .ua-attempt-type.ua-none,
+      .ua-chip.ua-none {
         background: var(--surface-2);
-        border: 1px solid var(--border);
         color: var(--muted);
       }
 
       @media (prefers-color-scheme: dark) {
-        .ua-tag.ua-ios {
+        .ua-tag.ua-ios,
+        .ua-attempt-type.ua-ios,
+        .ua-chip.ua-ios {
           background: #0a84ff28;
-          border-color: #0a84ff66;
           color: #64b5ff;
         }
 
-        .ua-tag.ua-android {
+        .ua-tag.ua-android,
+        .ua-attempt-type.ua-android,
+        .ua-chip.ua-android {
           background: #3ddc8428;
-          border-color: #3ddc8466;
           color: #6ee7a0;
         }
 
-        .ua-tag.ua-macos {
+        .ua-tag.ua-macos,
+        .ua-attempt-type.ua-macos,
+        .ua-chip.ua-macos {
           background: #98989d28;
-          border-color: #98989d66;
           color: #c7c7cc;
         }
 
-        .ua-tag.ua-windows {
+        .ua-tag.ua-windows,
+        .ua-attempt-type.ua-windows,
+        .ua-chip.ua-windows {
           background: #0078d428;
-          border-color: #0078d466;
           color: #6cb4f5;
         }
       }
@@ -1824,6 +2145,12 @@
         padding: 0;
       }
 
+      .section-heading-row .section-heading-hint {
+        margin: 0;
+        max-width: min(28rem, 58%);
+        text-align: right;
+      }
+
       .section-lead {
         margin-bottom: 16px;
         margin-top: -4px;
@@ -1953,15 +2280,6 @@
         gap: 8px;
       }
 
-      .ua-attempt-type {
-        background: var(--accent-dim);
-        border-radius: var(--radius);
-        color: var(--accent);
-        font-family: var(--mono);
-        font-size: 0.6875rem;
-        padding: 1px 6px;
-      }
-
       .ua-attempt-retry {
         color: var(--muted);
         font-family: var(--mono);
@@ -2029,17 +2347,9 @@
 
       .worker-orig-sep {
         color: var(--muted);
+        flex-shrink: 0;
         font-weight: 600;
         user-select: none;
-      }
-
-      .worker-block-label {
-        color: var(--muted);
-        font-size: 0.625rem;
-        font-weight: 600;
-        letter-spacing: 0.1em;
-        margin-bottom: 6px;
-        text-transform: uppercase;
       }
 
       .worker-network {
@@ -2047,16 +2357,11 @@
         font-size: 1.0625rem;
         font-weight: 600;
         line-height: 1.35;
-        word-break: break-all;
+        overflow-wrap: anywhere;
       }
 
       .worker-network .worker-asn {
         color: var(--accent);
-      }
-
-      .worker-loc-val {
-        font-size: 0.9375rem;
-        line-height: 1.4;
       }
 
       .worker-loc-inline {
@@ -2065,19 +2370,13 @@
         line-height: 1.4;
       }
 
-      .worker-extras {
-        border-top: 1px solid var(--divider-subtle);
+      .worker-extra-inline {
         color: var(--muted);
-        display: flex;
-        flex-wrap: wrap;
         font-family: var(--mono);
         font-size: 0.75rem;
-        gap: 16px;
-        margin-top: 12px;
-        padding-top: 12px;
       }
 
-      .worker-extras span strong {
+      .worker-extra-inline strong {
         color: var(--text);
         font-weight: 500;
       }
@@ -2108,6 +2407,14 @@
         transition: background 0.15s;
       }
 
+      .hop-row:not(.is-open) {
+        background: var(--hop-closed-bg);
+      }
+
+      .hop-row:not(.is-open).is-extraction {
+        background: var(--hop-closed-extraction-bg);
+      }
+
       .hop-row.is-open {
         background: var(--hop-open-bg);
         box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--accent) 22%, var(--divider-subtle));
@@ -2124,12 +2431,102 @@
         cursor: pointer;
         display: flex;
         flex-wrap: nowrap;
-        gap: 8px;
+        gap: 10px;
         padding: 10px 12px;
+        -webkit-tap-highlight-color: transparent;
+      }
+
+      .hop-index {
+        align-items: center;
+        background: transparent;
+        border: 1px solid transparent;
+        border-radius: 50%;
+        box-sizing: border-box;
+        color: var(--hint);
+        display: flex;
+        flex-shrink: 0;
+        font-family: var(--mono);
+        font-size: 0.625rem;
+        font-variant-numeric: tabular-nums;
+        font-weight: 600;
+        height: 1.5rem;
+        justify-content: center;
+        min-width: 1.5rem;
+        position: relative;
+        transition:
+          background 0.28s var(--ease-out),
+          border-color 0.28s var(--ease-out),
+          color 0.28s var(--ease-out);
+        width: 1.5rem;
+      }
+
+      .hop-row.is-open .hop-index {
+        background: var(--accent-dim);
+        border-color: color-mix(in srgb, var(--accent) 28%, transparent);
+        color: var(--accent);
+      }
+
+      .hop-row.is-open .hop-index::after {
+        background: linear-gradient(
+          180deg,
+          color-mix(in srgb, var(--accent) 35%, transparent) 0%,
+          transparent 100%
+        );
+        border-radius: 1px;
+        bottom: -10px;
+        content: "";
+        height: 7px;
+        left: 50%;
+        opacity: 0.7;
+        pointer-events: none;
+        position: absolute;
+        transform: translateX(-50%);
+        width: 1px;
+      }
+
+      .hop-row.is-open.is-extraction .hop-index {
+        background: var(--extraction-bg);
+        border-color: color-mix(in srgb, var(--extraction-color) 28%, transparent);
+        color: var(--extraction-color);
+      }
+
+      .hop-row.is-open.is-extraction .hop-index::after {
+        background: linear-gradient(
+          180deg,
+          color-mix(in srgb, var(--extraction-color) 35%, transparent) 0%,
+          transparent 100%
+        );
+      }
+
+      .hop-chevron {
+        color: var(--hint);
+        flex-shrink: 0;
+        height: 14px;
+        opacity: 0.5;
+        transition:
+          opacity 0.2s var(--ease-out),
+          transform 0.28s var(--ease-out);
+        width: 14px;
+      }
+
+      .hop-row.is-open .hop-chevron {
+        opacity: 1;
+        transform: rotate(180deg);
+      }
+
+      @media (prefers-reduced-motion: reduce) {
+        .hop-index,
+        .hop-chevron {
+          transition: none;
+        }
       }
 
       .hop-row:not(.is-open):hover {
-        background: var(--overlay-hover);
+        background: var(--hop-closed-bg-hover);
+      }
+
+      .hop-row:not(.is-open).is-extraction:hover {
+        background: var(--hop-closed-extraction-bg-hover);
       }
 
       .hop-row.is-open .hop-header {
@@ -2185,6 +2582,10 @@
         overflow: hidden;
         text-overflow: ellipsis;
         white-space: nowrap;
+      }
+
+      .hop-summary-to {
+        color: var(--text);
       }
 
       .hop-meta {
@@ -3030,9 +3431,64 @@
       </section>
 
       <div class="request-sidebar-footer">
-        <span>Made by <a href="https://github.com/BenJeau" target="_blank" rel="noopener noreferrer">BenJeau</a></span>
-        <span class="request-sidebar-footer-sep" aria-hidden="true">·</span>
-        <span>Built on <a href="https://developers.cloudflare.com/workers/" target="_blank" rel="noopener noreferrer">Cloudflare Workers</a></span>
+        <div class="sidebar-rail-content">
+          <div class="sidebar-rail-brand" aria-hidden="true">
+            <span class="sidebar-rail-monogram">
+              <span class="sidebar-rail-monogram-accent">U</span>R
+            </span>
+          </div>
+          <nav class="sidebar-rail-dock" aria-label="Quick actions">
+            <button
+              type="button"
+              class="sidebar-rail-action"
+              id="railUrlBtn"
+              style="--i: 0"
+              aria-label="Enter URL"
+              title="Enter URL"
+            >
+              <svg class="sidebar-rail-action-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <path d="M5 5.5h6M5 8h4"/>
+                <rect x="3" y="3" width="10" height="10" rx="1.5"/>
+              </svg>
+              <span class="sidebar-rail-action-label">URL</span>
+              <span class="sidebar-rail-action-signal" id="railUrlSignal" hidden aria-hidden="true"></span>
+            </button>
+            <button
+              type="button"
+              class="sidebar-rail-action"
+              id="railHistoryBtn"
+              style="--i: 1"
+              aria-label="Open history"
+              title="History"
+            >
+              <svg class="sidebar-rail-action-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.25" stroke-linecap="round" aria-hidden="true">
+                <path d="M4 4.5h8"/>
+                <path d="M4 8h8"/>
+                <path d="M4 11.5h5"/>
+              </svg>
+              <span class="sidebar-rail-action-label">Log</span>
+              <span class="sidebar-rail-action-count" id="railHistoryCount" data-count="0">0</span>
+            </button>
+          </nav>
+          <div class="sidebar-rail-divider" aria-hidden="true"></div>
+        </div>
+        <div class="request-sidebar-footer-inner">
+          <span>Made by <a href="https://github.com/BenJeau" target="_blank" rel="noopener noreferrer">BenJeau</a></span>
+          <span class="request-sidebar-footer-sep" aria-hidden="true">·</span>
+          <span>Built on <a href="https://developers.cloudflare.com/workers/" target="_blank" rel="noopener noreferrer">Cloudflare Workers</a></span>
+        </div>
+        <button
+          type="button"
+          class="sidebar-toggle-btn"
+          id="sidebarToggleBtn"
+          aria-label="Collapse sidebar"
+          aria-expanded="true"
+        >
+          <svg class="sidebar-toggle-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="M10 4L6 8l4 4"/>
+            <path d="M12 4v8"/>
+          </svg>
+        </button>
       </div>
     </main>
 
@@ -3088,6 +3544,7 @@
     <script src="vendor/prism/components/prism-bash.min.js"></script>
     <script>
       const STORAGE_KEY = "url-resolver-history";
+      const SIDEBAR_COLLAPSED_KEY = "url-resolver-sidebar-collapsed";
       const MAX_HISTORY = 100;
       const MOBILE_LAYOUT_MQ = window.matchMedia("(max-width: 1100px)");
       const DEFAULT_ENDPOINT = window.location.origin;
@@ -3463,7 +3920,7 @@
           available.forEach((ua) => {
             const chip = document.createElement("button");
             chip.type = "button";
-            chip.className = "ua-chip";
+            chip.className = `ua-chip ua-${ua}`;
             chip.dataset.ua = ua;
             chip.innerHTML = `<span class="ua-chip-prefix" aria-hidden="true">+</span>${escHtml(ua)}`;
             poolSegment.appendChild(chip);
@@ -3648,7 +4105,7 @@
               (ua, i) => `
             <div class="ua-attempt">
               <div class="ua-attempt-head">
-                <span class="ua-attempt-type">${i + 1}. ${escHtml(ua.type)}</span>
+                <span class="ua-attempt-type ua-${escHtml(ua.type)}">${i + 1}. ${escHtml(ua.type)}</span>
                 ${ua.retry_reason ? `<span class="ua-attempt-retry">${explainable("ua_retry", ua.retry_reason, ua.retry_reason)}</span>` : ""}
               </div>
               <div class="ua-attempt-val">${ua.value != null ? escHtml(ua.value) : "no User-Agent header"}</div>
@@ -3851,6 +4308,17 @@
         return renderResponseMetaHtml(hop.status, hop.timing_ms);
       }
 
+      function renderHopSummaryHtml(hop, isExtraction) {
+        const from = isExtraction
+          ? (hop.rule_id ?? "—")
+          : (hop.request?.url ?? "—");
+        const to = isExtraction
+          ? (hop.next_url ?? "—")
+          : (hop.next_url ?? "null");
+
+        return `<span class="hop-summary">${escHtml(from)} → <span class="hop-summary-to">${escHtml(to)}</span></span>`;
+      }
+
       function renderHopsHtml(hops) {
         if (hops.length === 0) {
           return '<p style="color:var(--muted);font-size:0.8125rem">No hops recorded.</p>';
@@ -3859,18 +4327,20 @@
         return `<div class="hops-list">${hops
           .map((hop, i) => {
             const isExtraction = hop.type === "extraction";
-            const summary = isExtraction
-              ? hop.rule_id + " → " + (hop.next_url ?? "")
-              : (hop.request?.url ?? "") + " → " + (hop.next_url ?? "null");
+            const summary = renderHopSummaryHtml(hop, isExtraction);
             const uaTags = renderHopUaTagsHtml(hop);
             const meta = renderHopMetaHtml(hop, isExtraction);
             return `
             <div class="hop-row${isExtraction ? " is-extraction" : ""}">
-              <div class="hop-header" data-hop="${i}">
+              <div class="hop-header" data-hop="${i}" aria-expanded="false">
+                <span class="hop-index">${i + 1}</span>
                 <span class="hop-type ${isExtraction ? "extraction" : ""}">${hop.type}</span>
-                <span class="hop-summary">${escHtml(summary)}</span>
+                ${summary}
                 ${uaTags}
                 ${meta}
+                <svg class="hop-chevron" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                  <path d="M4 6l4 4 4-4"/>
+                </svg>
               </div>
               <div class="hop-body" id="hop-body-${i}">
                 <div class="hop-body-inner">
@@ -3909,19 +4379,14 @@
             <div class="worker-origination">
               <span class="worker-network">${networkHtml}</span>
               <span class="worker-orig-sep" aria-hidden="true">·</span>
-              <span class="worker-loc-inline">${escHtml(formatWorkerLocation(w))}</span>
+              <span class="worker-loc-inline">${escHtml(formatWorkerLocation(w))}</span>${extras
+                .map(
+                  ([k, v]) =>
+                    `<span class="worker-orig-sep" aria-hidden="true">·</span><span class="worker-extra-inline"><strong>${escHtml(k)}</strong> ${escHtml(v)}</span>`,
+                )
+                .join("")}
             </div>
-          </div>
-          ${
-            extras.length
-              ? `<div class="worker-extras">${extras
-                  .map(
-                    ([k, v]) =>
-                      `<span><strong>${escHtml(k)}</strong> ${escHtml(v)}</span>`,
-                  )
-                  .join("")}</div>`
-              : ""
-          }`;
+          </div>`;
       }
 
       function renderSummaryHtml(data, httpStatus) {
@@ -3976,7 +4441,6 @@
           </div>
 
           <div class="meta-section">
-            <div class="meta-section-title">URL trail</div>
             ${renderUrlPathHtml(data.urls)}
           </div>`;
       }
@@ -4028,8 +4492,10 @@
             <div class="section-heading">Hops<span class="section-count">${hopCount}</span></div>
           </div>
           ${renderHopsHtml(data.hops ?? [])}
-          <div class="section-heading">Request origin</div>
-          <p class="field-hint section-lead">Cloudflare Worker edge — egress IP, ASN, and location for this resolve</p>
+          <div class="section-heading-row">
+            <div class="section-heading">Request origin</div>
+            <p class="field-hint section-heading-hint">Cloudflare Worker edge — egress IP, ASN, and location for this resolve</p>
+          </div>
           ${renderWorkerHtml(data.worker)}`;
 
         bindExplainables($("resultView"));
@@ -4038,6 +4504,7 @@
       function renderHistoryList() {
         const countEl = $("historyCount");
         if (countEl) countEl.textContent = String(resolveHistory.length);
+        syncRailOverview();
 
         const list = $("historyList");
         if (resolveHistory.length === 0) {
@@ -4259,8 +4726,107 @@
         syncFormToUrl(true);
       }
 
+      function isSidebarCollapseEnabled() {
+        return !MOBILE_LAYOUT_MQ.matches;
+      }
+
+      function syncRailOverview() {
+        const countEl = $("railHistoryCount");
+        if (countEl) {
+          const count = resolveHistory.length;
+          countEl.textContent = String(count);
+          countEl.dataset.count = String(count);
+        }
+
+        const signal = $("railUrlSignal");
+        if (signal) {
+          const hasUrl = Boolean($("urlInput").value.trim());
+          signal.hidden = !hasUrl;
+          signal.classList.toggle("is-live", hasUrl);
+        }
+      }
+
+      function expandSidebar({ focus, scrollTo } = {}) {
+        setSidebarCollapsed(false);
+        requestAnimationFrame(() => {
+          requestAnimationFrame(() => {
+            if (focus === "url") $("urlInput").focus();
+            if (scrollTo === "history") {
+              document
+                .querySelector(".request-history")
+                ?.scrollIntoView({ behavior: "smooth", block: "nearest" });
+            }
+          });
+        });
+      }
+
+      function setSidebarCollapsed(collapsed, { persist = true, animate = true } = {}) {
+        const main = document.querySelector("main");
+        if (!main) return;
+        if (collapsed && !isSidebarCollapseEnabled()) collapsed = false;
+
+        main.classList.remove("is-sidebar-rail-ready");
+
+        if (collapsed) {
+          main.classList.add("is-sidebar-collapsed");
+          if (animate) {
+            requestAnimationFrame(() => {
+              requestAnimationFrame(() => {
+                main.classList.add("is-sidebar-rail-ready");
+              });
+            });
+          } else {
+            main.classList.add("is-sidebar-rail-ready");
+          }
+        } else {
+          main.classList.remove("is-sidebar-collapsed");
+        }
+
+        const toggleBtn = $("sidebarToggleBtn");
+        if (toggleBtn) {
+          toggleBtn.hidden = !isSidebarCollapseEnabled();
+          toggleBtn.setAttribute("aria-expanded", collapsed ? "false" : "true");
+          toggleBtn.setAttribute(
+            "aria-label",
+            collapsed ? "Expand sidebar" : "Collapse sidebar",
+          );
+        }
+
+        if (persist && isSidebarCollapseEnabled()) {
+          localStorage.setItem(SIDEBAR_COLLAPSED_KEY, collapsed ? "1" : "0");
+        }
+      }
+
+      function initSidebarCollapse() {
+        const saved = localStorage.getItem(SIDEBAR_COLLAPSED_KEY) === "1";
+        setSidebarCollapsed(saved, { persist: false, animate: false });
+
+        bindPress("sidebarToggleBtn", () => {
+          const main = document.querySelector("main");
+          setSidebarCollapsed(!main.classList.contains("is-sidebar-collapsed"));
+        });
+
+        bindPress("railUrlBtn", () => expandSidebar({ focus: "url" }));
+
+        bindPress("railHistoryBtn", () => {
+          expandSidebar({ scrollTo: "history" });
+        });
+
+        MOBILE_LAYOUT_MQ.addEventListener("change", () => {
+          if (MOBILE_LAYOUT_MQ.matches) {
+            setSidebarCollapsed(false, { persist: false });
+            return;
+          }
+          const restored = localStorage.getItem(SIDEBAR_COLLAPSED_KEY) === "1";
+          setSidebarCollapsed(restored, { persist: false });
+        });
+      }
+
       function bindFormSync() {
-        const sync = () => syncFormToUrl();
+        const sync = () => {
+          syncFormToUrl();
+          syncRailOverview();
+        };
         $("endpointInput").addEventListener("input", sync);
         $("urlInput").addEventListener("input", sync);
         $("urlInput").addEventListener("keydown", (e) => {
@@ -4361,8 +4927,9 @@
       bindPressDelegate("resultView", ".hop-header", (_e, el) => {
         const body = $("hop-body-" + el.dataset.hop);
         const row = el.closest(".hop-row");
-        body.classList.toggle("open");
-        row.classList.toggle("is-open", body.classList.contains("open"));
+        const isOpen = body.classList.toggle("open");
+        row.classList.toggle("is-open", isOpen);
+        el.setAttribute("aria-expanded", isOpen ? "true" : "false");
       });
 
       bindPressDelegate("resultView", ".explainable:not(.explainable-hover-only)", (e, el) => {
@@ -4381,6 +4948,8 @@
       });
 
       bindFormSync();
+      initSidebarCollapse();
+      syncRailOverview();
       bindExplainables($("resolverForm"));
       renderHistoryList();
       handleUrlNavigation();
