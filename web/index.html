@@ -600,7 +600,9 @@
         background:
           linear-gradient(0deg, var(--brand-glow) 0%, transparent 48px),
           var(--brand-bg);
+        border-right: 1px solid var(--border);
         border-top: 1px solid var(--border);
+        box-shadow: inset -1px 0 0 var(--request-shadow);
         color: var(--text);
         display: flex;
         flex-shrink: 0;
@@ -943,6 +945,14 @@
         opacity: 1;
       }
 
+      .hop-ua-tags {
+        align-items: center;
+        display: inline-flex;
+        flex-shrink: 0;
+        flex-wrap: wrap;
+        gap: 4px;
+      }
+
       .ua-tag {
         border-radius: var(--radius);
         flex-shrink: 0;
@@ -1171,11 +1181,6 @@
           animation: none;
           display: none;
         }
-
-        .url-path-step,
-        .url-path-segment {
-          animation: none !important;
-        }
       }
 
       .stats-row {
@@ -1279,30 +1284,9 @@
       }
 
       .url-path-step {
-        animation: url-path-step-in 0.5s cubic-bezier(0.22, 1, 0.36, 1) both;
         display: grid;
         gap: 0 14px;
         grid-template-columns: 28px 1fr;
-      }
-
-      .url-path-step:nth-child(1) {
-        animation-delay: 0.05s;
-      }
-
-      .url-path-step:nth-child(2) {
-        animation-delay: 0.13s;
-      }
-
-      @keyframes url-path-step-in {
-        from {
-          opacity: 0;
-          transform: translateY(10px);
-        }
-
-        to {
-          opacity: 1;
-          transform: translateY(0);
-        }
       }
 
       .url-path-rail {
@@ -1338,7 +1322,6 @@
       }
 
       .url-path-segment {
-        animation: url-path-segment-in 0.45s cubic-bezier(0.22, 1, 0.36, 1) both;
         background: linear-gradient(
           180deg,
           var(--accent) 0%,
@@ -1347,28 +1330,7 @@
         flex: 1;
         margin: 5px 0;
         min-height: 28px;
-        transform-origin: top center;
         width: 2px;
-      }
-
-      .url-path-step:nth-child(1) .url-path-segment {
-        animation-delay: 0.1s;
-      }
-
-      .url-path-step:nth-child(2) .url-path-segment {
-        animation-delay: 0.18s;
-      }
-
-      @keyframes url-path-segment-in {
-        from {
-          opacity: 0;
-          transform: scaleY(0);
-        }
-
-        to {
-          opacity: 1;
-          transform: scaleY(1);
-        }
       }
 
       .url-path-step.is-terminal .url-path-segment {
@@ -2677,10 +2639,7 @@
 
             <div class="form-field">
               <div class="form-field-label">
-                User-Agent chain
-                <span class="hint"
-                  >Platforms to try in order per hop until valid redirect; empty sends no User-Agent header.</span
-                >
+                <span class="explainable" data-explain-cat="query_param" data-explain-id="user-agent">User-Agent chain</span>
               </div>
               <div class="ua-chain-editor" id="uaChainEditor"></div>
             </div>
@@ -2688,19 +2647,19 @@
             <div class="checkbox-row">
               <label>
                 <input type="checkbox" id="enforceHttpScheme" checked />
-                enforce-http-scheme
+                <span class="explainable" data-explain-cat="query_param" data-explain-id="enforce-http-scheme">enforce-http-scheme</span>
               </label>
               <label>
                 <input type="checkbox" id="stopOnCrossDomain" checked />
-                stop-on-cross-domain
+                <span class="explainable" data-explain-cat="query_param" data-explain-id="stop-on-cross-domain">stop-on-cross-domain</span>
               </label>
               <label>
                 <input type="checkbox" id="extractResponseBody" checked />
-                extract-response-body
+                <span class="explainable" data-explain-cat="query_param" data-explain-id="extract-response-body">extract-response-body</span>
               </label>
               <label>
                 <input type="checkbox" id="debugFlag" checked />
-                debug (worker IP lookup)
+                <span class="explainable" data-explain-cat="query_param" data-explain-id="debug">debug (worker IP lookup)</span>
               </label>
             </div>
 
@@ -2934,6 +2893,18 @@
           raw_destination: "Before embedded URL extraction.",
           final_destination:
             "After redirect following and embedded URL extraction.",
+        },
+        query_param: {
+          "user-agent":
+            "Platforms to try in order per hop until a valid redirect; empty sends no User-Agent header. Values: ios, android, macos, windows, none.",
+          "enforce-http-scheme":
+            "When on, UA retries continue until Location resolves to http/https. Turn off to allow any scheme.",
+          "stop-on-cross-domain":
+            "When on, stop at cross-domain redirects outside the built-in shortener set. Turn off to follow any host.",
+          "extract-response-body":
+            "When on, include raw response body text in each resolve hop under response.body.",
+          debug:
+            "When on, resolve worker egress IP and include it in worker.ip.",
         },
       };
 
@@ -3233,10 +3204,11 @@
           .replace(/"/g, "&quot;");
       }
 
-      function explainable(category, id, label) {
+      function explainable(category, id, label, { hoverOnly = false } = {}) {
         const text = EXPLAIN[category]?.[id];
         if (!text) return escHtml(label);
-        return `<span class="explainable" data-explain-cat="${escHtml(category)}" data-explain-id="${escHtml(id)}">${escHtml(label)}</span>`;
+        const hoverClass = hoverOnly ? " explainable-hover-only" : "";
+        return `<span class="explainable${hoverClass}" data-explain-cat="${escHtml(category)}" data-explain-id="${escHtml(id)}">${escHtml(label)}</span>`;
       }
 
       function positionExplainTooltip(e) {
@@ -3246,9 +3218,10 @@
         tip.style.top = e.clientY + 14 + "px";
       }
 
-      function bindExplainables() {
+      function bindExplainables(root = document) {
         const tip = $("explainTooltip");
-        document.querySelectorAll(".explainable").forEach((el) => {
+        root.querySelectorAll(".explainable:not([data-explain-bound])").forEach((el) => {
+          el.dataset.explainBound = "1";
           el.addEventListener("mouseenter", (e) => {
             const text = EXPLAIN[el.dataset.explainCat]?.[el.dataset.explainId];
             if (!text) return;
@@ -3449,11 +3422,17 @@
         return html;
       }
 
-      function lastHopUserAgent(hop) {
-        if (hop.type === "extraction") return null;
+      function renderHopUaTagsHtml(hop) {
+        if (hop.type === "extraction") return "";
         const attempts = hop.request?.user_agents;
-        if (!attempts?.length) return null;
-        return attempts[attempts.length - 1]?.type ?? null;
+        if (!attempts?.length) return "";
+        const tags = attempts
+          .map(
+            (ua) =>
+              `<span class="ua-tag ua-${escHtml(ua.type)}">${escHtml(ua.type)}</span>`,
+          )
+          .join("");
+        return `<span class="hop-ua-tags">${tags}</span>`;
       }
 
       function renderUrlPathHtml(urls) {
@@ -3521,11 +3500,11 @@
             return `
                   <div class="url-path-pair">
                     <div class="url-path-cell">
-                      <span class="url-path-subkey">${explainable("url_trail", "raw_destination", "Before extraction")}</span>
+                      <span class="url-path-subkey">${explainable("url_trail", "raw_destination", "Before extraction", { hoverOnly: true })}</span>
                       <div class="url-path-url break-url">${escHtml(step.raw ?? "—")}</div>
                     </div>
                     <div class="url-path-cell">
-                      <span class="url-path-subkey">${explainable("url_trail", "final_destination", "Final")}</span>
+                      <span class="url-path-subkey">${explainable("url_trail", "final_destination", "Final", { hoverOnly: true })}</span>
                       <div class="url-path-url break-url">${escHtml(step.final ?? "—")}</div>
                     </div>
                   </div>`;
@@ -3603,17 +3582,14 @@
             const summary = isExtraction
               ? hop.rule_id + " → " + (hop.next_url ?? "")
               : (hop.request?.url ?? "") + " → " + (hop.next_url ?? "null");
-            const lastUa = lastHopUserAgent(hop);
-            const uaTag = lastUa
-              ? `<span class="ua-tag ua-${escHtml(lastUa)}">${escHtml(lastUa)}</span>`
-              : "";
+            const uaTags = renderHopUaTagsHtml(hop);
             const meta = renderHopMetaHtml(hop, isExtraction);
             return `
             <div class="hop-row${isExtraction ? " is-extraction" : ""}">
               <div class="hop-header" data-hop="${i}">
                 <span class="hop-type ${isExtraction ? "extraction" : ""}">${hop.type}</span>
                 <span class="hop-summary">${escHtml(summary)}</span>
-                ${uaTag}
+                ${uaTags}
                 ${meta}
               </div>
               <div class="hop-body" id="hop-body-${i}">
@@ -3774,7 +3750,7 @@
           <p class="field-hint section-lead">Cloudflare Worker edge — egress IP, ASN, and location for this resolve</p>
           ${renderWorkerHtml(data.worker)}`;
 
-        bindExplainables();
+        bindExplainables($("resultView"));
       }
 
       function renderHistoryList() {
@@ -4104,8 +4080,9 @@
         row.classList.toggle("is-open", body.classList.contains("open"));
       });
 
-      bindPressDelegate("resultView", ".explainable", (e) => {
+      bindPressDelegate("resultView", ".explainable:not(.explainable-hover-only)", (e, el) => {
         e.stopPropagation();
+        if (el.dataset.explainCat === "url_trail") return;
         openGlossaryModal();
       });
 
@@ -4119,6 +4096,7 @@
       });
 
       bindFormSync();
+      bindExplainables($("resolverForm"));
       renderHistoryList();
       handleUrlNavigation();
 
