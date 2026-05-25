@@ -195,6 +195,21 @@ describe("url-resolver worker", () => {
     expect(response.headers.get("content-type")).toContain("text/html");
   });
 
+  it("serves vendor and font assets", async () => {
+    const vendor = await SELF.fetch(
+      "https://resolver.test/vendor/prism/prism.min.js",
+      { headers: { Accept: "*/*" } },
+    );
+    const fonts = await SELF.fetch("https://resolver.test/fonts/fonts.css", {
+      headers: { Accept: "text/css,*/*;q=0.1" },
+    });
+
+    expect(vendor.status).toBe(200);
+    expect(vendor.headers.get("content-type")).toContain("javascript");
+    expect(fonts.status).toBe(200);
+    expect(fonts.headers.get("content-type")).toContain("css");
+  });
+
   describe("request method and input source", () => {
     it("uses querystring url for GET requests", async () => {
       const fetchMock = installUpstreamMock({
