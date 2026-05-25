@@ -10,6 +10,20 @@ This worker accepts a URL and resolves redirects manually, with safety guards an
 - Redirect traversal continues only while redirects stay on the original host.
 - Destination URL not visited (unless same as input URL)
 
+## Web UI
+
+A static browser playground lives in [`web/`](web/). Open [`web/index.html`](web/index.html) via a local static server (for example `npx serve web`) to resolve URLs interactively against a worker endpoint.
+
+The UI includes:
+
+- Request form (URL, user-agent chain, flags, method, endpoint)
+- Copyable cURL for the current request
+- Redirect hop timeline with status/timing and expandable hop details
+- Local resolve history (stored in the browser; shareable via URL query params)
+- Full JSON modal and a reasons/rules glossary
+
+All fonts and syntax-highlighting assets are bundled under `web/` — no external CDN dependencies at runtime.
+
 ## Request API
 
 Supported methods: `GET`, `POST`.
@@ -324,6 +338,14 @@ npm run generate-user-agents
 npm run generate-url-shortener-domains
 npm run dev
 ```
+
+To run the web UI locally:
+
+```bash
+npx serve web
+```
+
+Then open the served URL in your browser and point the **API endpoint** field at your worker (`http://127.0.0.1:8787` when using `npm run dev`, or your deployed worker URL).
 
 ## Testing
 

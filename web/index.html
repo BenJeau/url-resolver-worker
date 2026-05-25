@@ -1,0 +1,3907 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>URL Resolver</title>
+    <link rel="stylesheet" href="fonts/fonts.css" />
+    <style>
+      :root {
+        color-scheme: light dark;
+        --mono: "IBM Plex Mono", ui-monospace, monospace;
+        --sans: "DM Sans", system-ui, sans-serif;
+        --display: "Syne", system-ui, sans-serif;
+
+        --bg: #ffffff;
+        --surface: #f4f4f5;
+        --surface-2: #ebebed;
+        --border: #e4e4e7;
+        --text: #09090b;
+        --muted: #71717a;
+        --hint: #a1a1aa;
+        --accent: #0d9488;
+        --accent-dim: #0d948820;
+        --accent-on-primary: #ffffff;
+        --danger: #dc2626;
+        --history-accent: #a16207;
+        --history-bg: #fafafa;
+        --request-bg: #f8f8f8;
+        --brand-bg: #ffffff;
+        --brand-glow: #0d948812;
+        --result-bg: #ffffff;
+        --card-bg: #00000004;
+        --card-border: #0000000d;
+        --divider: #00000012;
+        --divider-subtle: #0000000a;
+        --overlay-hover: #00000008;
+        --overlay-active: #0000000c;
+        --body-glow: #0d948808;
+        --result-glow: #0d948806;
+        --grid-line: #00000006;
+        --result-header-bg: #00000004;
+        --request-stripe: #0d948840;
+        --request-shadow: #0d948812;
+        --history-stripe: #a1620740;
+        --history-shadow: #a1620712;
+        --history-rail: #a1620730;
+        --history-hover-border: #a1620740;
+        --history-active-bg: #a1620718;
+        --history-header-bg: #a1620724;
+        --history-active-dest: #0f766e;
+        --hop-open-bg: linear-gradient(
+          90deg,
+          #0d948820 0%,
+          #0d94880a 55%,
+          transparent 100%
+        );
+        --hop-open-extraction-bg: linear-gradient(
+          90deg,
+          #6366f120 0%,
+          #6366f10a 55%,
+          transparent 100%
+        );
+        --history-active-bg-gradient: linear-gradient(
+          90deg,
+          #a1620724 0%,
+          #a1620710 55%,
+          transparent 100%
+        );
+        --dest-gradient-start: #09090b;
+        --dest-gradient-end: #14b8a6;
+        --dest-rule-mid: #0d948840;
+        --brand-meta: #a1a1aa;
+        --hint-input: #a1a1aa;
+        --modal-overlay: #00000099;
+        --danger-bg: #dc262615;
+        --danger-badge: #dc262622;
+        --ok-badge: #0d948822;
+        --extraction-bg: #6366f122;
+        --extraction-color: #4f46e5;
+        --curl-bg: #00000006;
+        --curl-border: #0000000a;
+        --curl-accent: #0369a1;
+        --curl-stripe: #0369a140;
+        --curl-header-bg: #0369a124;
+        --curl-rail: #0369a130;
+        --curl-section-bg: #0369a108;
+        --json-modal-bg: #0000000a;
+        --hl-comment: #a1a1aa;
+        --hl-property: #0d9488;
+        --hl-string: #b45309;
+        --hl-number: #9333ea;
+        --hl-punct: #71717a;
+        --hl-fn: #2563eb;
+        --hl-kw: #7c3aed;
+        --github-hover-bg: #00000008;
+      }
+
+      @media (prefers-color-scheme: dark) {
+        :root {
+          --bg: #080808;
+          --surface: #111113;
+          --surface-2: #1a1a1e;
+          --border: #2a2a30;
+          --text: #ececee;
+          --muted: #7a7a85;
+          --hint: #5a5a62;
+          --accent: #5eead4;
+          --accent-dim: #5eead422;
+          --accent-on-primary: #0a0a0a;
+          --danger: #f87171;
+          --history-accent: #c4a574;
+          --history-bg: #101012;
+          --request-bg: #0a0a0c;
+          --brand-bg: #111113;
+          --brand-glow: #5eead408;
+          --result-bg: #0d0d0f;
+          --card-bg: #ffffff04;
+          --card-border: #ffffff0d;
+          --divider: #ffffff0d;
+          --divider-subtle: #ffffff0a;
+          --overlay-hover: #ffffff08;
+          --overlay-active: #ffffff0c;
+          --body-glow: #5eead406;
+          --result-glow: #5eead405;
+          --grid-line: #ffffff03;
+          --result-header-bg: #ffffff04;
+          --request-stripe: #5eead430;
+          --request-shadow: #5eead40a;
+          --history-stripe: #c4a57430;
+          --history-shadow: #c4a5740a;
+          --history-rail: #c4a57425;
+          --history-hover-border: #c4a57450;
+          --history-active-bg: #c4a57418;
+          --history-header-bg: #c4a57428;
+          --history-active-dest: #7ee8d4;
+          --hop-open-bg: linear-gradient(
+            90deg,
+            #5eead422 0%,
+            #5eead40c 55%,
+            transparent 100%
+          );
+          --hop-open-extraction-bg: linear-gradient(
+            90deg,
+            #818cf822 0%,
+            #818cf80c 55%,
+            transparent 100%
+          );
+          --history-active-bg-gradient: linear-gradient(
+            90deg,
+            #c4a57428 0%,
+            #c4a57412 55%,
+            transparent 100%
+          );
+          --dest-gradient-start: #ffffff;
+          --dest-gradient-end: #3dd9c0;
+          --dest-rule-mid: #5eead440;
+          --brand-meta: #555;
+          --hint-input: #555;
+          --modal-overlay: #000000cc;
+          --danger-bg: #f8717115;
+          --danger-badge: #f8717133;
+          --ok-badge: #5eead433;
+          --extraction-bg: #818cf833;
+          --extraction-color: #818cf8;
+          --curl-bg: #00000040;
+          --curl-border: #ffffff0a;
+          --curl-accent: #7dd3fc;
+          --curl-stripe: #7dd3fc30;
+          --curl-header-bg: #7dd3fc20;
+          --curl-rail: #7dd3fc28;
+          --curl-section-bg: #7dd3fc0a;
+          --json-modal-bg: #00000055;
+          --hl-comment: #71717a;
+          --hl-property: #5eead4;
+          --hl-string: #fbbf24;
+          --hl-number: #e879f9;
+          --hl-punct: #a1a1aa;
+          --hl-fn: #60a5fa;
+          --hl-kw: #a78bfa;
+          --github-hover-bg: #ffffff08;
+        }
+      }
+
+      * {
+        box-sizing: border-box;
+        margin: 0;
+        padding: 0;
+      }
+
+      html,
+      body {
+        height: 100%;
+        background: var(--bg);
+        color: var(--text);
+        font-family: var(--sans);
+        font-size: 14px;
+        line-height: 1.5;
+      }
+
+      body {
+        display: flex;
+        overflow: hidden;
+        background:
+          radial-gradient(ellipse 80% 50% at 50% -10%, var(--body-glow), transparent),
+          var(--bg);
+      }
+
+      main {
+        display: grid;
+        grid-template-columns: 400px 1fr;
+        grid-template-rows: 1fr auto;
+        flex: 1;
+        min-height: 0;
+        min-width: 0;
+        width: 100%;
+      }
+
+      .panel-request {
+        grid-column: 1;
+        grid-row: 1;
+        min-height: 0;
+      }
+
+      .panel-result {
+        grid-column: 2;
+        grid-row: 1 / -1;
+      }
+
+      .request-sidebar-footer {
+        grid-column: 1;
+        grid-row: 2;
+      }
+
+      @media (max-width: 1100px) {
+        html,
+        body {
+          height: auto;
+          min-height: 100%;
+        }
+
+        body {
+          overflow-x: hidden;
+          overflow-y: auto;
+        }
+
+        body:has(.panel-result.is-resolving) {
+          overflow: hidden;
+        }
+
+        main {
+          display: flex;
+          flex-direction: column;
+          flex: none;
+          min-height: 100dvh;
+          overflow: visible;
+        }
+
+        .panel-request {
+          flex: 0 0 auto;
+        }
+
+        .panel-result {
+          flex: 0 1 auto;
+          min-height: 50vh;
+        }
+
+        .panel-result.is-empty {
+          flex: 1 1 auto;
+          min-height: 0;
+        }
+
+        .panel-result.is-empty .panel-body {
+          display: flex;
+          flex: 1 1 auto;
+          flex-direction: column;
+          min-height: 0;
+        }
+
+        .panel-result.is-empty .result-empty {
+          flex: 1 1 auto;
+          min-height: 0;
+        }
+
+        .request-sidebar-footer {
+          flex: 0 0 auto;
+        }
+
+        .panel {
+          min-height: auto;
+          overflow: visible;
+        }
+
+        .panel-body,
+        .panel-request .panel-body,
+        .panel-result .panel-body,
+        .request-section-body {
+          flex: none;
+          min-height: auto;
+          overflow: visible;
+        }
+
+        .request-history {
+          flex: none;
+          min-height: auto;
+          overflow: visible;
+        }
+      }
+
+      .panel {
+        display: flex;
+        flex-direction: column;
+        min-height: 0;
+        min-width: 0;
+      }
+
+      .panel-request {
+        background: var(--request-bg);
+        border-right: 1px solid var(--border);
+        box-shadow: inset -1px 0 0 var(--request-shadow);
+      }
+
+      .panel-result {
+        background:
+          linear-gradient(180deg, var(--result-glow) 0%, transparent 120px),
+          repeating-linear-gradient(
+            0deg,
+            transparent,
+            transparent 23px,
+            var(--grid-line) 23px,
+            var(--grid-line) 24px
+          ),
+          var(--result-bg);
+        border-right: 1px solid var(--border);
+        min-height: 0;
+        position: relative;
+      }
+
+      .panel-result.is-resolving {
+        overflow: hidden;
+      }
+
+      .panel-result.is-resolving .panel-body {
+        overflow: hidden;
+      }
+
+      .panel-result .panel-header {
+        background: var(--result-header-bg);
+        border-bottom-color: var(--divider);
+      }
+
+      .request-history .request-section-header {
+        background: var(--history-header-bg);
+        border-bottom-color: var(--history-rail);
+        color: var(--history-accent);
+      }
+
+      .request-history .request-section-note {
+        color: var(--history-accent);
+        opacity: 0.72;
+      }
+
+      .request-history .request-section-count {
+        background: var(--history-active-bg);
+        border-radius: var(--radius);
+        color: var(--history-accent);
+        font-family: var(--mono);
+        font-size: 0.625rem;
+        font-weight: 600;
+        letter-spacing: 0;
+        margin-left: 6px;
+        padding: 2px 7px;
+        text-transform: none;
+        vertical-align: middle;
+      }
+
+      .request-curl-footer .request-section-header {
+        background: var(--curl-header-bg);
+        border-bottom-color: var(--curl-rail);
+        color: var(--curl-accent);
+      }
+
+      .request-curl-footer .request-section-toggle {
+        text-transform: uppercase;
+      }
+
+      .request-curl-footer .request-section-note {
+        color: var(--curl-accent);
+        opacity: 0.72;
+      }
+
+      .request-curl-footer .collapse-chevron {
+        color: var(--curl-accent);
+        margin-right: 6px;
+        opacity: 0.72;
+      }
+
+      .request-section-header {
+        align-items: center;
+        border-bottom: 1px solid var(--border);
+        color: var(--muted);
+        display: flex;
+        flex-shrink: 0;
+        font-size: 0.75rem;
+        font-weight: 600;
+        justify-content: space-between;
+        letter-spacing: 0.1em;
+        padding: 8px 10px;
+        text-transform: uppercase;
+      }
+
+      .request-section-note {
+        color: var(--hint);
+        font-size: 0.625rem;
+        font-weight: 500;
+        letter-spacing: 0.04em;
+        margin-left: 6px;
+        text-transform: none;
+      }
+
+      .request-section-body {
+        flex: 1;
+        min-height: 0;
+        overflow-y: auto;
+        padding: 0;
+      }
+
+      .request-section-toggle {
+        align-items: center;
+        background: none;
+        border: none;
+        color: inherit;
+        cursor: pointer;
+        display: flex;
+        flex: 1;
+        font: inherit;
+        font-size: inherit;
+        font-weight: inherit;
+        gap: 8px;
+        justify-content: space-between;
+        letter-spacing: inherit;
+        min-width: 0;
+        padding: 0;
+        text-align: left;
+        text-transform: inherit;
+      }
+
+      .collapse-chevron {
+        color: var(--hint);
+        flex-shrink: 0;
+        height: 14px;
+        transition: transform 0.22s ease;
+        width: 14px;
+      }
+
+      .request-collapsible-body {
+        display: grid;
+        grid-template-rows: 0fr;
+        overflow: hidden;
+        transition: grid-template-rows 0.22s ease;
+      }
+
+      .request-collapsible-inner {
+        min-height: 0;
+        overflow: hidden;
+      }
+
+      .request-curl-footer.is-open .request-collapsible-body {
+        grid-template-rows: 1fr;
+      }
+
+      .form-config.is-open .collapse-chevron,
+      .request-curl-footer.is-open .collapse-chevron {
+        transform: rotate(180deg);
+      }
+
+      .request-history {
+        border-left: 2px solid var(--history-stripe);
+        border-top: 1px solid var(--border);
+        display: flex;
+        flex: 1 1 0;
+        flex-direction: column;
+        min-height: 0;
+        overflow: hidden;
+      }
+
+      .panel-header {
+        padding: 10px 14px;
+        border-bottom: 1px solid var(--border);
+        font-size: 0.75rem;
+        font-weight: 600;
+        letter-spacing: 0.1em;
+        text-transform: uppercase;
+        color: var(--muted);
+        flex-shrink: 0;
+      }
+
+      .panel-header-row {
+        align-items: center;
+        display: flex;
+        justify-content: space-between;
+      }
+
+      .branding {
+        background:
+          linear-gradient(180deg, var(--brand-glow) 0%, transparent 80px),
+          var(--brand-bg);
+        border-bottom: 1px solid var(--border);
+        flex-shrink: 0;
+        padding: 20px 18px 18px;
+      }
+
+      .brand-top {
+        align-items: center;
+        display: flex;
+        gap: 12px;
+        justify-content: space-between;
+      }
+
+      .brand-title {
+        font-family: var(--display);
+        font-size: 1.625rem;
+        font-weight: 800;
+        letter-spacing: -0.03em;
+        line-height: 1.1;
+        margin: 0;
+      }
+
+      .brand-home {
+        color: inherit;
+        text-decoration: none;
+        transition: opacity 0.15s;
+      }
+
+      .brand-home:hover {
+        opacity: 0.82;
+      }
+
+      .brand-home span {
+        color: var(--accent);
+      }
+
+      .brand-github {
+        align-items: center;
+        background: var(--surface-2);
+        border: 1px solid var(--border);
+        border-radius: var(--radius);
+        color: var(--muted);
+        display: flex;
+        flex-shrink: 0;
+        height: 36px;
+        justify-content: center;
+        transition:
+          border-color 0.15s,
+          color 0.15s,
+          background 0.15s;
+        width: 36px;
+      }
+
+      .brand-github:hover {
+        background: var(--github-hover-bg);
+        border-color: var(--accent);
+        color: var(--accent);
+      }
+
+      .brand-tagline {
+        color: var(--muted);
+        font-size: 0.8125rem;
+        line-height: 1.45;
+        margin-top: 10px;
+        max-width: 22rem;
+      }
+
+      .request-sidebar-footer {
+        align-items: center;
+        background:
+          linear-gradient(0deg, var(--brand-glow) 0%, transparent 48px),
+          var(--brand-bg);
+        border-top: 1px solid var(--border);
+        color: var(--text);
+        display: flex;
+        flex-shrink: 0;
+        flex-wrap: wrap;
+        font-size: 0.6875rem;
+        gap: 4px 6px;
+        line-height: 1.4;
+        padding: 10px 14px;
+      }
+
+      .request-sidebar-footer-sep {
+        color: var(--muted);
+        user-select: none;
+      }
+
+      .request-sidebar-footer a {
+        color: var(--muted);
+        text-decoration: underline;
+        text-underline-offset: 2px;
+      }
+
+      .request-sidebar-footer a:hover {
+        color: var(--accent);
+      }
+
+      .brand-meta {
+        color: var(--brand-meta);
+        font-family: var(--mono);
+        font-size: 0.625rem;
+        letter-spacing: 0.06em;
+        margin-top: 8px;
+        text-transform: uppercase;
+      }
+
+      .panel-body {
+        flex: 1;
+        min-width: 0;
+        overflow-y: auto;
+        padding: 14px;
+      }
+
+      .panel-result .panel-body {
+        display: flex;
+        flex-direction: column;
+        padding: 18px 22px 28px;
+      }
+
+      #resultView {
+        padding-bottom: 12px;
+      }
+
+      .panel-request .panel-body {
+        border-left: 2px solid var(--request-stripe);
+        flex: 0 1 auto;
+        margin-left: 0;
+        min-height: 0;
+        overflow-y: auto;
+        padding: 14px 14px 18px;
+      }
+
+      .request-curl-footer {
+        border-left: 2px solid var(--curl-stripe);
+        border-top: 1px solid var(--border);
+        display: flex;
+        flex-direction: column;
+        flex-shrink: 0;
+        padding: 0;
+      }
+
+      .request-curl-footer .request-section-body {
+        flex: 0 1 auto;
+        overflow: visible;
+      }
+
+      .field-hint {
+        color: var(--hint);
+        font-size: 0.6875rem;
+        line-height: 1.5;
+        margin-top: 12px;
+      }
+
+      .break-url {
+        cursor: text;
+        overflow-wrap: anywhere;
+        user-select: text;
+        word-break: break-all;
+      }
+
+      form {
+        display: flex;
+        flex-direction: column;
+        gap: 14px;
+      }
+
+      .form-field {
+        display: flex;
+        flex-direction: column;
+        gap: 4px;
+      }
+
+      .form-field-label {
+        color: var(--muted);
+        font-size: 0.75rem;
+        font-weight: 500;
+        letter-spacing: 0.04em;
+      }
+
+      .form-field-label .hint {
+        color: var(--hint-input);
+        font-size: 0.6875rem;
+        font-weight: 400;
+        letter-spacing: 0;
+        text-transform: none;
+      }
+
+      label {
+        display: flex;
+        flex-direction: column;
+        gap: 4px;
+        font-size: 0.75rem;
+        color: var(--muted);
+        letter-spacing: 0.04em;
+      }
+
+      label span.hint {
+        font-size: 0.6875rem;
+        color: var(--hint-input);
+        letter-spacing: 0;
+        text-transform: none;
+      }
+
+      input[type="text"],
+      input[type="url"],
+      select,
+      textarea {
+        background: var(--surface-2);
+        border: 1px solid var(--border);
+        border-radius: var(--radius);
+        color: var(--text);
+        font-family: inherit;
+        font-size: 0.875rem;
+        padding: 8px 10px;
+        outline: none;
+        width: 100%;
+      }
+
+      input:focus,
+      select:focus,
+      textarea:focus {
+        border-color: var(--accent);
+      }
+
+      textarea {
+        font-family: var(--mono);
+        font-size: 0.8125rem;
+        resize: vertical;
+        min-height: 72px;
+      }
+
+      .checkbox-row {
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+      }
+
+      .checkbox-row label {
+        flex-direction: row;
+        align-items: center;
+        gap: 8px;
+        cursor: pointer;
+        color: var(--text);
+        font-size: 0.8125rem;
+      }
+
+      .checkbox-row input[type="checkbox"] {
+        accent-color: var(--accent);
+        width: 14px;
+        height: 14px;
+      }
+
+      .method-pills {
+        background: var(--surface-2);
+        border: 1px solid var(--border);
+        border-radius: 0;
+        display: inline-flex;
+        gap: 0;
+        margin-top: 4px;
+        padding: 0;
+        width: fit-content;
+      }
+
+      .method-pill {
+        background: transparent;
+        border: none;
+        border-radius: 0;
+        color: var(--muted);
+        cursor: pointer;
+        font-family: var(--mono);
+        font-size: 0.75rem;
+        font-weight: 600;
+        letter-spacing: 0.04em;
+        padding: 5px 16px;
+        transition:
+          background 0.15s,
+          color 0.15s,
+          box-shadow 0.15s;
+      }
+
+      .method-pill + .method-pill {
+        border-left: 1px solid var(--border);
+      }
+
+      .method-pill:hover {
+        color: var(--text);
+      }
+
+      .method-pill.active {
+        background: var(--accent-dim);
+        box-shadow: inset 0 0 0 1px var(--accent);
+        color: var(--accent);
+      }
+
+      .form-config {
+        border-top: 1px solid var(--divider-subtle);
+        margin-top: 2px;
+        padding-top: 12px;
+      }
+
+      .form-config-toggle {
+        align-items: center;
+        background: none;
+        border: none;
+        color: var(--muted);
+        cursor: pointer;
+        display: flex;
+        font-size: 0.75rem;
+        font-weight: 600;
+        justify-content: space-between;
+        letter-spacing: 0.06em;
+        padding: 0;
+        text-transform: uppercase;
+        width: 100%;
+      }
+
+      .form-config-toggle:hover {
+        color: var(--text);
+      }
+
+      .form-config-body {
+        display: grid;
+        grid-template-rows: 0fr;
+        overflow: hidden;
+        transition: grid-template-rows 0.22s ease;
+      }
+
+      .form-config.is-open .form-config-body {
+        grid-template-rows: 1fr;
+        padding-top: 12px;
+      }
+
+      .form-config-body-inner {
+        display: flex;
+        flex-direction: column;
+        gap: 14px;
+        min-height: 0;
+        overflow: hidden;
+      }
+
+      .ua-chain-editor {
+        align-items: center;
+        display: flex;
+        flex-wrap: wrap;
+        gap: 4px;
+        margin-top: 4px;
+        min-height: 24px;
+      }
+
+      .ua-chip {
+        background: var(--surface-2);
+        border: 1px solid var(--border);
+        border-radius: var(--radius);
+        color: var(--muted);
+        cursor: pointer;
+        font-size: 0.75rem;
+        padding: 3px 8px;
+        transition:
+          border-color 0.15s,
+          color 0.15s,
+          background 0.15s;
+      }
+
+      .ua-chip:hover {
+        background: var(--accent-dim);
+        border-color: var(--accent);
+        color: var(--accent);
+      }
+
+      .ua-chip:focus {
+        outline: none;
+      }
+
+      .ua-chip:focus-visible {
+        outline: 2px solid var(--accent);
+        outline-offset: 1px;
+      }
+
+      .ua-order-item {
+        align-items: center;
+        background: var(--surface-2);
+        border: 1px solid var(--border);
+        border-radius: var(--radius);
+        color: var(--text);
+        display: flex;
+        font-size: 0.75rem;
+        gap: 4px;
+        padding: 2px 6px;
+      }
+
+      .ua-order-item .ua-order-index {
+        color: var(--accent);
+        font-family: var(--mono);
+        font-weight: 600;
+      }
+
+      .ua-order-item button {
+        background: none;
+        border: none;
+        color: var(--muted);
+        cursor: pointer;
+        font-size: 0.875rem;
+        line-height: 1;
+        opacity: 0.7;
+        padding: 0;
+      }
+
+      .ua-order-item button:hover {
+        color: var(--text);
+        opacity: 1;
+      }
+
+      .ua-tag {
+        border-radius: var(--radius);
+        flex-shrink: 0;
+        font-family: var(--mono);
+        font-size: 0.625rem;
+        font-weight: 600;
+        letter-spacing: 0.02em;
+        padding: 3px 10px;
+        text-transform: lowercase;
+      }
+
+      .ua-tag.ua-ios {
+        background: #007aff18;
+        border: 1px solid #007aff55;
+        color: #007aff;
+      }
+
+      .ua-tag.ua-android {
+        background: #3ddc8418;
+        border: 1px solid #3ddc8455;
+        color: #1a8f4c;
+      }
+
+      .ua-tag.ua-mac {
+        background: #8e8e9318;
+        border: 1px solid #8e8e9355;
+        color: #636366;
+      }
+
+      .ua-tag.ua-windows {
+        background: #0078d418;
+        border: 1px solid #0078d455;
+        color: #0078d4;
+      }
+
+      .ua-tag.ua-none {
+        background: var(--surface-2);
+        border: 1px solid var(--border);
+        color: var(--muted);
+      }
+
+      @media (prefers-color-scheme: dark) {
+        .ua-tag.ua-ios {
+          background: #0a84ff28;
+          border-color: #0a84ff66;
+          color: #64b5ff;
+        }
+
+        .ua-tag.ua-android {
+          background: #3ddc8428;
+          border-color: #3ddc8466;
+          color: #6ee7a0;
+        }
+
+        .ua-tag.ua-mac {
+          background: #98989d28;
+          border-color: #98989d66;
+          color: #c7c7cc;
+        }
+
+        .ua-tag.ua-windows {
+          background: #0078d428;
+          border-color: #0078d466;
+          color: #6cb4f5;
+        }
+      }
+
+      .btn {
+        align-items: center;
+        background: var(--surface-2);
+        border: 1px solid var(--border);
+        border-radius: var(--radius);
+        color: var(--text);
+        cursor: pointer;
+        display: inline-flex;
+        font-family: inherit;
+        font-size: 0.8125rem;
+        gap: 6px;
+        justify-content: center;
+        padding: 7px 12px;
+        transition: border-color 0.15s;
+      }
+
+      .btn-icon {
+        flex-shrink: 0;
+        height: 14px;
+        width: 14px;
+      }
+
+      .btn-sm .btn-icon {
+        height: 12px;
+        width: 12px;
+      }
+
+      .btn:hover {
+        border-color: var(--muted);
+      }
+
+      .btn-primary {
+        background: var(--accent);
+        border-color: var(--accent);
+        color: var(--accent-on-primary);
+        font-weight: 600;
+      }
+
+      .btn-primary:hover {
+        filter: brightness(1.1);
+      }
+
+      .btn-primary:disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
+        filter: none;
+      }
+
+      .btn-sm {
+        font-size: 0.75rem;
+        padding: 4px 8px;
+      }
+
+      .btn-copied {
+        border-color: var(--accent) !important;
+        color: var(--accent) !important;
+      }
+
+      .form-actions {
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+        margin-top: 4px;
+      }
+
+      .result-empty {
+        align-items: center;
+        color: var(--muted);
+        display: flex;
+        flex: 1;
+        flex-direction: column;
+        font-size: 0.875rem;
+        gap: 8px;
+        justify-content: center;
+        min-height: 12rem;
+        text-align: center;
+      }
+
+      .result-empty kbd {
+        background: var(--surface-2);
+        border: 1px solid var(--border);
+        border-radius: var(--radius);
+        font-family: var(--mono);
+        font-size: 0.75rem;
+        padding: 2px 6px;
+      }
+
+      .result-content {
+        display: none;
+        flex-direction: column;
+        gap: 22px;
+      }
+
+      .result-content.visible {
+        display: flex;
+        flex: 0 0 auto;
+      }
+
+      .destination-display {
+        margin-bottom: 6px;
+        padding: 4px 0 32px;
+        position: relative;
+      }
+
+      .destination-display::after {
+        background: linear-gradient(
+          90deg,
+          var(--accent) 0%,
+          var(--dest-rule-mid) 35%,
+          transparent 100%
+        );
+        bottom: 0;
+        content: "";
+        height: 2px;
+        left: 0;
+        position: absolute;
+        right: 0;
+      }
+
+      .destination-display .label {
+        color: var(--accent);
+        font-family: var(--display);
+        font-size: 0.875rem;
+        font-weight: 700;
+        letter-spacing: 0.06em;
+        margin-bottom: 14px;
+        text-transform: uppercase;
+      }
+
+      .destination-display .dest-url {
+        display: block;
+        font-family: var(--mono);
+        font-size: clamp(2.25rem, 6vw, 3.25rem);
+        font-weight: 800;
+        letter-spacing: -0.02em;
+        line-height: 1.2;
+        margin: 0;
+        overflow-wrap: anywhere;
+        word-break: break-all;
+      }
+
+      .destination-display .dest-text {
+        background: linear-gradient(
+          120deg,
+          #000000 0%,
+          #000000 35%,
+          var(--accent) 70%,
+          var(--dest-gradient-end) 100%
+        );
+        -webkit-background-clip: text;
+        background-clip: text;
+        font-weight: 800;
+        -webkit-text-fill-color: transparent;
+      }
+
+      @media (prefers-color-scheme: dark) {
+        .destination-display .dest-text {
+          background: linear-gradient(
+            120deg,
+            #ffffff 0%,
+            #ffffff 35%,
+            var(--accent) 70%,
+            var(--dest-gradient-end) 100%
+          );
+          -webkit-background-clip: text;
+          background-clip: text;
+          -webkit-text-fill-color: transparent;
+        }
+      }
+
+      .destination-display .field-hint {
+        margin-top: 16px;
+      }
+
+      .stats-row {
+        border-bottom: 1px solid var(--border);
+        display: grid;
+        gap: 20px 16px;
+        grid-template-columns: repeat(5, minmax(0, 1fr));
+        padding-bottom: 20px;
+      }
+
+      @media (max-width: 900px) {
+        .stats-row {
+          grid-template-columns: repeat(2, minmax(0, 1fr));
+        }
+      }
+
+      .stat-item .key {
+        color: var(--muted);
+        font-size: 0.625rem;
+        font-weight: 600;
+        letter-spacing: 0.1em;
+        text-transform: uppercase;
+      }
+
+      .stat-item .val {
+        font-family: var(--mono);
+        font-size: 1.125rem;
+        font-weight: 600;
+        line-height: 1.2;
+        margin-top: 6px;
+        word-break: break-all;
+      }
+
+      .stat-item .val.compact {
+        font-size: 0.875rem;
+        line-height: 1.35;
+      }
+
+      .stat-item .hint {
+        color: var(--hint);
+        font-size: 0.6875rem;
+        line-height: 1.5;
+        margin-top: 8px;
+      }
+
+      .stat-item.accent .val {
+        color: var(--accent);
+      }
+
+      .meta-section {
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+      }
+
+      .meta-section-title {
+        border-bottom: 2px solid var(--accent);
+        color: var(--accent);
+        font-family: var(--display);
+        font-size: 0.875rem;
+        font-weight: 700;
+        letter-spacing: 0.06em;
+        margin-bottom: 14px;
+        margin-top: 32px;
+        padding-bottom: 10px;
+        text-transform: uppercase;
+      }
+
+      .url-trail-item {
+        border-bottom: 1px solid var(--divider-subtle);
+        padding: 10px 0;
+      }
+
+      .url-trail-item:last-child {
+        border-bottom: none;
+      }
+
+      .url-trail-item .key {
+        color: var(--muted);
+        font-size: 0.625rem;
+        font-weight: 600;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+      }
+
+      .url-trail-item .val {
+        font-family: var(--mono);
+        font-size: 0.8125rem;
+        line-height: 1.45;
+        margin-top: 6px;
+        overflow-wrap: anywhere;
+        word-break: break-all;
+      }
+
+      .url-trail-item .field-hint {
+        margin-top: 10px;
+      }
+
+      .url-path {
+        display: flex;
+        flex-direction: column;
+        margin-top: 6px;
+      }
+
+      .url-path-step {
+        display: grid;
+        gap: 0 14px;
+        grid-template-columns: 28px 1fr;
+      }
+
+      .url-path-rail {
+        align-items: center;
+        display: flex;
+        flex-direction: column;
+        min-height: 100%;
+        padding-top: 2px;
+      }
+
+      .url-path-node {
+        align-items: center;
+        background: var(--accent-dim);
+        border: 2px solid var(--accent);
+        border-radius: 50%;
+        color: var(--accent);
+        display: flex;
+        flex-shrink: 0;
+        font-family: var(--display);
+        font-size: 0.625rem;
+        font-weight: 700;
+        height: 22px;
+        justify-content: center;
+        width: 22px;
+        z-index: 1;
+      }
+
+      .url-path-step.is-terminal .url-path-node {
+        background: var(--accent);
+        box-shadow: 0 0 0 4px var(--accent-dim);
+        color: var(--accent-on-primary);
+      }
+
+      .url-path-segment {
+        background: linear-gradient(
+          180deg,
+          var(--accent) 0%,
+          var(--border) 85%
+        );
+        flex: 1;
+        margin: 5px 0;
+        min-height: 28px;
+        width: 2px;
+      }
+
+      .url-path-step.is-terminal .url-path-segment {
+        display: none;
+      }
+
+      .url-path-content {
+        padding-bottom: 22px;
+      }
+
+      .url-path-step.is-terminal .url-path-content {
+        padding-bottom: 0;
+      }
+
+      .url-path-step.is-destination .url-path-node {
+        background: var(--accent);
+        box-shadow: 0 0 0 4px var(--accent-dim);
+        color: var(--accent-on-primary);
+      }
+
+      .url-path-step.is-destination .url-path-url {
+        color: var(--accent);
+        font-weight: 600;
+      }
+
+      .url-path-label {
+        align-items: center;
+        color: var(--accent);
+        display: flex;
+        font-family: var(--display);
+        font-size: 0.6875rem;
+        font-weight: 700;
+        gap: 10px;
+        letter-spacing: 0.06em;
+        text-transform: uppercase;
+      }
+
+      .url-path-label .explainable {
+        color: inherit;
+        font-family: inherit;
+        font-size: inherit;
+        font-weight: inherit;
+        letter-spacing: inherit;
+        text-transform: inherit;
+      }
+
+      .url-path-label::after {
+        background: linear-gradient(90deg, var(--border), transparent);
+        content: "";
+        flex: 1;
+        height: 1px;
+        max-width: 72px;
+      }
+
+      .url-path-url {
+        color: var(--text);
+        font-family: var(--mono);
+        font-size: 0.8125rem;
+        line-height: 1.45;
+        margin-top: 7px;
+        overflow-wrap: anywhere;
+        word-break: break-all;
+      }
+
+      .url-path-hint {
+        color: var(--hint);
+        font-size: 0.6875rem;
+        line-height: 1.45;
+        margin-top: 8px;
+      }
+
+      .meta-grid {
+        display: grid;
+        gap: 12px 24px;
+        grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+      }
+
+      .meta-item {
+        padding: 0;
+      }
+
+      .meta-item .key {
+        color: var(--muted);
+        font-size: 0.625rem;
+        font-weight: 600;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+      }
+
+      .meta-item .val {
+        font-family: var(--mono);
+        font-size: 0.8125rem;
+        line-height: 1.45;
+        margin-top: 6px;
+        overflow-wrap: anywhere;
+        word-break: break-all;
+      }
+
+      .meta-item .field-hint {
+        margin-top: 10px;
+      }
+
+      .url-trail {
+        display: flex;
+        flex-direction: column;
+        gap: 0;
+      }
+
+      .request-curl-footer pre,
+      .modal-body pre {
+        background: var(--surface-2);
+        border: 1px solid var(--border);
+        border-radius: var(--radius);
+        margin: 0;
+        overflow-x: auto;
+        padding: 10px 12px;
+      }
+
+      .panel-request .request-curl-footer pre {
+        background: var(--curl-section-bg);
+        border: none;
+        border-radius: 0;
+        border-top: 1px solid var(--curl-rail);
+        color: var(--text);
+        font-family: var(--mono);
+        font-size: 0.6875rem;
+        line-height: 1.5;
+        white-space: pre-wrap;
+        word-break: break-all;
+      }
+
+      .request-curl-footer pre code,
+      .modal-body pre code {
+        background: none;
+        display: block;
+        font-family: var(--mono);
+        font-size: inherit;
+        line-height: inherit;
+        padding: 0;
+        white-space: pre-wrap;
+        word-break: break-all;
+      }
+
+      .token.comment,
+      .token.prolog,
+      .token.doctype,
+      .token.cdata {
+        color: var(--hl-comment);
+      }
+
+      .token.property,
+      .token.tag,
+      .token.constant,
+      .token.symbol,
+      .token.deleted {
+        color: var(--hl-property);
+      }
+
+      .token.string,
+      .token.char,
+      .token.attr-value,
+      .token.regex,
+      .token.inserted,
+      .token.url {
+        color: var(--hl-string);
+      }
+
+      .token.number,
+      .token.boolean {
+        color: var(--hl-number);
+      }
+
+      .token.punctuation,
+      .token.operator,
+      .token.entity {
+        color: var(--hl-punct);
+      }
+
+      .token.function,
+      .token.class-name,
+      .token.builtin {
+        color: var(--hl-fn);
+      }
+
+      .token.keyword,
+      .token.atrule,
+      .token.parameter {
+        color: var(--hl-kw);
+      }
+
+      .panel-request label {
+        font-weight: 500;
+      }
+
+      .section-heading {
+        border-bottom: 2px solid var(--accent);
+        color: var(--accent);
+        font-family: var(--display);
+        font-size: 0.875rem;
+        font-weight: 700;
+        letter-spacing: 0.06em;
+        margin-bottom: 14px;
+        margin-top: 32px;
+        padding-bottom: 10px;
+        text-transform: uppercase;
+      }
+
+      .section-heading-row {
+        align-items: center;
+        border-bottom: 2px solid var(--accent);
+        display: flex;
+        justify-content: space-between;
+        margin-bottom: 12px;
+        margin-top: 28px;
+        padding-bottom: 10px;
+      }
+
+      .section-heading-row .section-heading {
+        border: none;
+        margin: 0;
+        padding: 0;
+      }
+
+      .section-lead {
+        margin-bottom: 16px;
+        margin-top: -4px;
+      }
+
+      .section-count {
+        background: var(--accent-dim);
+        border-radius: var(--radius);
+        color: var(--accent);
+        font-family: var(--mono);
+        font-size: 0.625rem;
+        font-weight: 600;
+        letter-spacing: 0;
+        margin-left: 8px;
+        padding: 2px 7px;
+        text-transform: none;
+        vertical-align: middle;
+      }
+
+      .result-toolbar {
+        display: none;
+        flex-shrink: 0;
+        justify-content: flex-end;
+        margin-bottom: 4px;
+      }
+
+      .result-toolbar.visible {
+        display: flex;
+      }
+
+      .hop-detail {
+        display: flex;
+        flex-direction: column;
+        gap: 6px;
+        padding-top: 4px;
+      }
+
+      .hop-detail-pair {
+        display: grid;
+        gap: 10px 18px;
+        grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+      }
+
+      @media (max-width: 720px) {
+        .hop-detail-pair {
+          grid-template-columns: 1fr;
+        }
+      }
+
+      .hop-detail-cell {
+        display: flex;
+        flex-direction: column;
+        gap: 5px;
+        min-width: 0;
+      }
+
+      .hop-detail-cell .hop-detail-val {
+        min-width: 0;
+      }
+
+      .hop-detail-key {
+        color: var(--muted);
+        font-size: 0.5625rem;
+        font-weight: 600;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+      }
+
+      .hop-detail-val {
+        font-family: var(--mono);
+        font-size: 0.6875rem;
+        line-height: 1.35;
+      }
+
+      .hop-detail-subhead {
+        border-top: 1px solid var(--divider-subtle);
+        color: var(--muted);
+        font-size: 0.5625rem;
+        font-weight: 600;
+        letter-spacing: 0.1em;
+        margin-top: 2px;
+        padding-top: 8px;
+        text-transform: uppercase;
+      }
+
+      .ua-attempt {
+        border-left: 2px solid var(--divider);
+        display: flex;
+        flex-direction: column;
+        gap: 4px;
+        margin-left: 2px;
+        padding: 4px 0 4px 10px;
+      }
+
+      .ua-attempt-head {
+        align-items: center;
+        display: flex;
+        gap: 8px;
+      }
+
+      .ua-attempt-type {
+        background: var(--accent-dim);
+        border-radius: var(--radius);
+        color: var(--accent);
+        font-family: var(--mono);
+        font-size: 0.6875rem;
+        padding: 1px 6px;
+      }
+
+      .ua-attempt-retry {
+        color: var(--muted);
+        font-family: var(--mono);
+        font-size: 0.6875rem;
+      }
+
+      .ua-attempt-val {
+        color: var(--hint);
+        font-family: var(--mono);
+        font-size: 0.6875rem;
+        line-height: 1.4;
+        word-break: break-all;
+      }
+
+      .headers-grid {
+        display: flex;
+        flex-direction: column;
+        gap: 4px;
+      }
+
+      .header-row {
+        display: grid;
+        font-family: var(--mono);
+        font-size: 0.6875rem;
+        gap: 8px;
+        grid-template-columns: minmax(5rem, 28%) 1fr;
+        line-height: 1.4;
+      }
+
+      .header-row .h-key {
+        color: var(--accent);
+        word-break: break-all;
+      }
+
+      .header-row .h-val {
+        color: var(--text);
+        word-break: break-all;
+      }
+
+      .hop-body-text {
+        background: var(--curl-bg);
+        border-left: 2px solid var(--divider);
+        font-family: var(--mono);
+        font-size: 0.6875rem;
+        line-height: 1.45;
+        margin-left: 2px;
+        max-height: 200px;
+        overflow: auto;
+        padding: 8px 10px;
+        white-space: pre-wrap;
+        word-break: break-all;
+      }
+
+      .worker-block {
+        margin-bottom: 16px;
+      }
+
+      .worker-origination {
+        align-items: baseline;
+        display: flex;
+        flex-wrap: wrap;
+        gap: 6px 10px;
+        line-height: 1.4;
+      }
+
+      .worker-orig-sep {
+        color: var(--muted);
+        font-weight: 600;
+        user-select: none;
+      }
+
+      .worker-block-label {
+        color: var(--muted);
+        font-size: 0.625rem;
+        font-weight: 600;
+        letter-spacing: 0.1em;
+        margin-bottom: 6px;
+        text-transform: uppercase;
+      }
+
+      .worker-network {
+        font-family: var(--mono);
+        font-size: 1.0625rem;
+        font-weight: 600;
+        line-height: 1.35;
+        word-break: break-all;
+      }
+
+      .worker-network .worker-asn {
+        color: var(--accent);
+      }
+
+      .worker-loc-val {
+        font-size: 0.9375rem;
+        line-height: 1.4;
+      }
+
+      .worker-loc-inline {
+        color: var(--text);
+        font-size: 0.9375rem;
+        line-height: 1.4;
+      }
+
+      .worker-extras {
+        border-top: 1px solid var(--divider-subtle);
+        color: var(--muted);
+        display: flex;
+        flex-wrap: wrap;
+        font-family: var(--mono);
+        font-size: 0.75rem;
+        gap: 16px;
+        margin-top: 12px;
+        padding-top: 12px;
+      }
+
+      .worker-extras span strong {
+        color: var(--text);
+        font-weight: 500;
+      }
+
+      pre.json-view {
+        background: var(--surface-2);
+        border: 1px solid var(--border);
+        border-radius: var(--radius);
+        font-family: var(--mono);
+        font-size: 0.75rem;
+        line-height: 1.6;
+        overflow-x: auto;
+        padding: 12px;
+        white-space: pre-wrap;
+        word-break: break-all;
+      }
+
+      .hops-list {
+        border-left: 1px solid var(--history-rail);
+        display: flex;
+        flex-direction: column;
+        gap: 0;
+        margin-left: 2px;
+        padding-left: 12px;
+      }
+
+      .hop-row {
+        border-bottom: 1px solid var(--divider-subtle);
+        margin-inline: -12px;
+        padding-inline: 12px;
+        transition: background 0.15s;
+      }
+
+      .hop-row:last-child {
+        border-bottom: none;
+      }
+
+      .hop-row.is-open {
+        background: var(--hop-open-bg);
+      }
+
+      .hop-row.is-open.is-extraction {
+        background: var(--hop-open-extraction-bg);
+      }
+
+      .hop-header {
+        align-items: center;
+        cursor: pointer;
+        display: flex;
+        flex-wrap: nowrap;
+        gap: 8px;
+        margin-inline: -12px;
+        padding: 10px 12px;
+      }
+
+      .hop-header:hover {
+        background: var(--overlay-hover);
+      }
+
+      .hop-row.is-open .hop-header {
+        background: var(--curl-bg);
+        border-bottom: 1px solid var(--curl-border);
+      }
+
+      .hop-row.is-open .hop-header:hover {
+        background: var(--curl-bg);
+      }
+
+      .hop-body {
+        display: grid;
+        grid-template-rows: 0fr;
+        margin-inline: -12px;
+        overflow: hidden;
+        padding-inline: 12px;
+        transition: grid-template-rows 0.26s ease;
+      }
+
+      .hop-body.open {
+        grid-template-rows: 1fr;
+        padding-bottom: 14px;
+        padding-top: 8px;
+      }
+
+      .hop-body-inner {
+        min-height: 0;
+        overflow: hidden;
+      }
+
+      .hop-row.is-open .hop-body.open {
+        background: transparent;
+      }
+
+      .hop-type {
+        background: var(--accent-dim);
+        border-radius: var(--radius);
+        color: var(--accent);
+        flex-shrink: 0;
+        font-family: var(--mono);
+        font-size: 0.6875rem;
+        padding: 2px 6px;
+      }
+
+      .hop-type.extraction {
+        background: var(--extraction-bg);
+        color: var(--extraction-color);
+      }
+
+      .hop-summary {
+        color: var(--muted);
+        flex: 1;
+        font-family: var(--mono);
+        font-size: 0.75rem;
+        line-height: 1.3;
+        min-width: 0;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+
+      .hop-meta {
+        align-items: stretch;
+        border: 1px solid var(--border);
+        border-radius: var(--radius);
+        display: inline-flex;
+        flex-shrink: 0;
+        font-variant-numeric: tabular-nums;
+        overflow: hidden;
+      }
+
+      .hop-status {
+        align-items: center;
+        background: var(--accent-dim);
+        color: var(--accent);
+        display: inline-flex;
+        font-family: var(--mono);
+        font-size: 0.625rem;
+        font-weight: 700;
+        letter-spacing: 0.03em;
+        line-height: 1;
+        padding: 4px 8px;
+      }
+
+      .hop-status.is-2xx {
+        background: #16a34a18;
+        color: #15803d;
+      }
+
+      .hop-status.is-3xx {
+        background: var(--accent-dim);
+        color: var(--accent);
+      }
+
+      .hop-status.is-4xx {
+        background: #dc262618;
+        color: #dc2626;
+      }
+
+      .hop-status.is-5xx {
+        background: #dc262622;
+        color: #b91c1c;
+      }
+
+      .hop-timing {
+        align-items: center;
+        background: var(--surface-2);
+        border-left: 1px solid var(--border);
+        color: var(--text);
+        display: inline-flex;
+        font-family: var(--mono);
+        font-size: 0.625rem;
+        font-weight: 600;
+        gap: 1px;
+        line-height: 1;
+        padding: 4px 8px;
+      }
+
+      .hop-timing-unit {
+        color: var(--muted);
+        font-size: 0.5625rem;
+        font-weight: 500;
+        letter-spacing: 0.04em;
+      }
+
+      @media (prefers-color-scheme: dark) {
+        .hop-status.is-2xx {
+          background: #22c55e28;
+          color: #6ee7a0;
+        }
+
+        .hop-status.is-4xx {
+          background: #ef444428;
+          color: #fca5a5;
+        }
+
+        .hop-status.is-5xx {
+          background: #ef444432;
+          color: #f87171;
+        }
+      }
+
+      .hop-meta-sep {
+        display: none;
+      }
+
+      .error-box {
+        background: var(--danger-bg);
+        border: 1px solid var(--danger);
+        border-radius: var(--radius);
+        color: var(--danger);
+        font-family: var(--mono);
+        font-size: 0.8125rem;
+        padding: 12px;
+        white-space: pre-wrap;
+      }
+
+      .history-list {
+        display: flex;
+        flex-direction: column;
+        gap: 0;
+        margin: 0;
+        padding: 0;
+      }
+
+      .history-item {
+        border-bottom: 1px solid var(--divider-subtle);
+        border-radius: 0;
+        cursor: pointer;
+        margin: 0;
+        padding: 7px 10px;
+        transition: background 0.15s;
+      }
+
+      .history-item,
+      .history-item * {
+        cursor: pointer;
+      }
+
+      .history-item .break-url {
+        cursor: pointer !important;
+      }
+
+      .history-item:last-child {
+        border-bottom: none;
+      }
+
+      .history-item:hover {
+        background: var(--overlay-hover);
+      }
+
+      .history-item.active {
+        background: var(--history-active-bg-gradient);
+      }
+
+      .history-item.active .hist-url {
+        color: var(--text);
+      }
+
+      .history-item .hist-url {
+        font-size: 0.8125rem;
+        line-height: 1.4;
+        overflow-wrap: anywhere;
+        word-break: break-all;
+      }
+
+      .history-item .hist-meta {
+        align-items: baseline;
+        color: var(--muted);
+        display: flex;
+        flex-wrap: nowrap;
+        font-size: 0.6875rem;
+        gap: 8px;
+        justify-content: space-between;
+        margin-top: 2px;
+      }
+
+      .history-item .hist-meta-main {
+        align-items: baseline;
+        display: flex;
+        flex: 1 1 auto;
+        flex-wrap: wrap;
+        gap: 4px 8px;
+        min-width: 0;
+      }
+
+      .history-item .hist-meta .hop-meta {
+        flex-shrink: 0;
+        margin-left: auto;
+      }
+
+      .history-item .hist-date {
+        color: var(--muted);
+      }
+
+      .history-item .hist-redirects {
+        color: var(--history-accent);
+      }
+
+      .history-item .hist-dest {
+        color: var(--accent);
+        font-family: var(--mono);
+        font-size: 0.6875rem;
+        line-height: 1.35;
+        margin-top: 4px;
+        overflow-wrap: anywhere;
+        word-break: break-all;
+      }
+
+      .history-item.active .hist-dest {
+        color: var(--history-active-dest);
+      }
+
+      .history-empty {
+        color: var(--muted);
+        font-size: 0.8125rem;
+        line-height: 1.45;
+        padding: 10px;
+        text-align: center;
+      }
+
+      .resolve-loading {
+        align-items: center;
+        display: flex;
+        inset: 0;
+        justify-content: center;
+        pointer-events: none;
+        position: absolute;
+        visibility: hidden;
+        z-index: 30;
+      }
+
+      .resolve-loading.open {
+        pointer-events: auto;
+        visibility: visible;
+      }
+
+      .resolve-loading-backdrop {
+        backdrop-filter: blur(0);
+        -webkit-backdrop-filter: blur(0);
+        inset: 0;
+        position: absolute;
+        transition:
+          backdrop-filter 0.32s ease,
+          -webkit-backdrop-filter 0.32s ease;
+      }
+
+      .resolve-loading.open .resolve-loading-backdrop {
+        backdrop-filter: blur(10px);
+        -webkit-backdrop-filter: blur(10px);
+      }
+
+      .resolve-loading-card {
+        max-width: 300px;
+        opacity: 0;
+        padding: 22px 24px;
+        position: relative;
+        text-align: center;
+        transform: scale(0.98) translateY(6px);
+        transition:
+          opacity 0.28s ease 0.04s,
+          transform 0.28s ease 0.04s;
+        width: calc(100% - 48px);
+        z-index: 1;
+      }
+
+      .resolve-loading.open .resolve-loading-card {
+        opacity: 1;
+        transform: scale(1) translateY(0);
+      }
+
+      .resolve-loading-spinner {
+        animation: resolve-spin 0.75s linear infinite;
+        border: 2px solid var(--border);
+        border-radius: 50%;
+        border-top-color: var(--accent);
+        height: 28px;
+        margin: 0 auto 14px;
+        width: 28px;
+      }
+
+      @keyframes resolve-spin {
+        to {
+          transform: rotate(360deg);
+        }
+      }
+
+      .resolve-loading-title {
+        color: var(--text);
+        font-family: var(--display);
+        font-size: 0.9375rem;
+        font-weight: 700;
+        letter-spacing: -0.02em;
+        margin: 0;
+      }
+
+      .resolve-loading-status {
+        color: var(--muted);
+        font-size: 0.8125rem;
+        line-height: 1.45;
+        margin: 8px 0 0;
+        min-height: 2.9em;
+        transition: opacity 0.18s ease;
+      }
+
+      .resolve-loading-status.is-changing {
+        opacity: 0.45;
+      }
+
+      @media (prefers-reduced-motion: reduce) {
+        .resolve-loading-backdrop {
+          transition: none;
+        }
+
+        .resolve-loading,
+        .resolve-loading-card,
+        .resolve-loading-status {
+          transition: none;
+        }
+
+        .resolve-loading-spinner {
+          animation: none;
+          border-top-color: var(--accent);
+          opacity: 0.85;
+        }
+      }
+
+      .status-badge {
+        border-radius: var(--radius);
+        font-family: var(--mono);
+        font-size: 0.6875rem;
+        padding: 1px 5px;
+      }
+
+      .status-badge.ok {
+        background: var(--ok-badge);
+        color: var(--accent);
+      }
+
+      .status-badge.err {
+        background: var(--danger-badge);
+        color: var(--danger);
+      }
+
+      .modal-overlay {
+        background: var(--modal-overlay);
+        display: grid;
+        inset: 0;
+        opacity: 0;
+        padding: 24px;
+        place-items: center;
+        pointer-events: none;
+        position: fixed;
+        transition: opacity 0.22s ease, visibility 0.22s;
+        visibility: hidden;
+        z-index: 100;
+      }
+
+      .modal-overlay.open {
+        opacity: 1;
+        pointer-events: auto;
+        visibility: visible;
+      }
+
+      .modal-box {
+        background: var(--surface);
+        border: 1px solid var(--border);
+        border-radius: var(--radius);
+        display: flex;
+        flex-direction: column;
+        max-height: min(80vh, 720px);
+        max-width: 720px;
+        opacity: 0;
+        transform: scale(0.98) translateY(10px);
+        transition:
+          opacity 0.22s ease,
+          transform 0.22s ease;
+        width: 100%;
+      }
+
+      .modal-overlay.open .modal-box {
+        opacity: 1;
+        transform: scale(1) translateY(0);
+      }
+
+      @media (prefers-reduced-motion: reduce) {
+        .hop-body,
+        .modal-overlay,
+        .modal-box {
+          transition: none;
+        }
+      }
+
+      #jsonModal .modal-box {
+        max-height: min(92vh, 920px);
+        max-width: min(92vw, 960px);
+        min-height: min(65vh, 560px);
+      }
+
+      #jsonModal .modal-body {
+        background: var(--json-modal-bg);
+        padding: 0;
+      }
+
+      #jsonModal .modal-body pre {
+        background: var(--json-modal-bg);
+        border: none;
+        border-radius: 0;
+        font-size: 0.8125rem;
+        line-height: 1.6;
+        margin: 0;
+        min-height: 100%;
+        padding: 12px 14px;
+      }
+
+      .modal-header {
+        align-items: center;
+        border-bottom: 1px solid var(--border);
+        display: flex;
+        flex-shrink: 0;
+        gap: 12px;
+        justify-content: space-between;
+        padding: 12px 14px;
+      }
+
+      .modal-header-actions {
+        align-items: center;
+        display: flex;
+        flex-shrink: 0;
+        gap: 8px;
+      }
+
+      .modal-header-title {
+        align-items: baseline;
+        display: flex;
+        flex-wrap: wrap;
+        gap: 6px;
+        min-width: 0;
+      }
+
+      .modal-header-note {
+        color: var(--hint);
+        font-size: 0.625rem;
+        font-weight: 500;
+        letter-spacing: 0.04em;
+      }
+
+      .modal-header h2 {
+        font-size: 0.8125rem;
+        font-weight: 600;
+      }
+
+      .modal-body {
+        flex: 1;
+        min-height: 0;
+        overflow: auto;
+        padding: 14px;
+      }
+
+      .modal-body pre {
+        font-size: 0.75rem;
+        line-height: 1.6;
+      }
+
+      .modal-footer {
+        border-top: 1px solid var(--border);
+        display: flex;
+        flex-shrink: 0;
+        gap: 8px;
+        justify-content: flex-end;
+        padding: 10px 14px;
+      }
+
+      .explainable {
+        border-bottom: 1px dotted var(--muted);
+        cursor: help;
+        transition: color 0.12s;
+      }
+
+      .explainable:hover {
+        color: var(--accent);
+      }
+
+      .glossary-link {
+        background: none;
+        border: none;
+        color: var(--muted);
+        cursor: pointer;
+        font-family: inherit;
+        font-size: 0.6875rem;
+        letter-spacing: 0.04em;
+        margin-left: auto;
+        padding: 0;
+        text-decoration: underline;
+        text-underline-offset: 2px;
+      }
+
+      .glossary-link:hover {
+        color: var(--accent);
+      }
+
+      .explain-tooltip {
+        background: var(--surface);
+        border: 1px solid var(--border);
+        border-radius: var(--radius);
+        box-shadow: 0 8px 24px #00000040;
+        color: var(--text);
+        font-size: 0.75rem;
+        line-height: 1.45;
+        max-width: 280px;
+        padding: 8px 10px;
+        pointer-events: none;
+        position: fixed;
+        z-index: 200;
+      }
+
+      .explain-tooltip[hidden] {
+        display: none;
+      }
+
+      .glossary-section {
+        margin-bottom: 20px;
+      }
+
+      .glossary-section h3 {
+        border-bottom: 1px solid var(--border);
+        font-size: 0.75rem;
+        font-weight: 600;
+        letter-spacing: 0.06em;
+        margin-bottom: 10px;
+        padding-bottom: 6px;
+        text-transform: uppercase;
+      }
+
+      .glossary-entry {
+        margin-bottom: 10px;
+      }
+
+      .glossary-entry dt {
+        color: var(--accent);
+        font-family: var(--mono);
+        font-size: 0.75rem;
+        font-weight: 600;
+      }
+
+      .glossary-entry dd {
+        color: var(--muted);
+        font-size: 0.8125rem;
+        line-height: 1.45;
+        margin-left: 0;
+        margin-top: 4px;
+      }
+
+      #glossaryModal .modal-box {
+        max-height: min(92vh, 920px);
+        max-width: min(92vw, 670px);
+        min-height: min(55vh, 520px);
+      }
+
+      #glossaryModal .modal-body {
+        background: var(--json-modal-bg);
+        padding: 12px 14px;
+      }
+
+      #glossaryModal .glossary-section {
+        margin-bottom: 10px;
+      }
+
+      #glossaryModal .glossary-section:last-child {
+        margin-bottom: 0;
+      }
+
+      #glossaryModal .glossary-section h3 {
+        font-size: 0.625rem;
+        margin-bottom: 4px;
+        padding-bottom: 3px;
+      }
+
+      #glossaryModal .glossary-grid {
+        display: flex;
+        flex-direction: column;
+        gap: 6px;
+      }
+
+      #glossaryModal .glossary-entry {
+        align-items: baseline;
+        display: grid;
+        gap: 4px 14px;
+        grid-template-columns: 12rem 1fr;
+        margin-bottom: 0;
+        padding: 0;
+      }
+
+      #glossaryModal .glossary-entry dt {
+        font-size: 0.6875rem;
+        line-height: 1.35;
+        overflow-wrap: anywhere;
+        word-break: break-word;
+      }
+
+      #glossaryModal .glossary-entry dd {
+        font-size: 0.75rem;
+        line-height: 1.35;
+        margin-top: 0;
+      }
+
+      .stats-row-header {
+        align-items: center;
+        border-bottom: 2px solid var(--accent);
+        display: flex;
+        gap: 8px;
+        margin-bottom: 14px;
+        margin-top: 8px;
+        padding-bottom: 10px;
+      }
+
+      .stats-section-label {
+        color: var(--accent);
+        font-family: var(--display);
+        font-size: 0.875rem;
+        font-weight: 700;
+        letter-spacing: 0.06em;
+        text-transform: uppercase;
+      }
+    </style>
+  </head>
+  <body>
+    <main>
+      <section class="panel panel-request">
+        <div class="branding">
+          <div class="brand-top">
+            <h1 class="brand-title">
+              <a class="brand-home" href="./">URL <span>Resolver</span></a>
+            </h1>
+            <a
+              class="brand-github"
+              href="https://github.com/BenJeau/url-resolver-worker"
+              target="_blank"
+              rel="noopener noreferrer"
+              aria-label="View source on GitHub"
+            >
+              <svg viewBox="0 0 16 16" width="18" height="18" fill="currentColor" aria-hidden="true">
+                <path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"/>
+              </svg>
+            </a>
+          </div>
+          <p class="brand-tagline">
+            Resolve URLs to their final destination — ideal for URL shortener resolution, redirect chain debugging, and unwrapping embedded wrapper links.
+          </p>
+        </div>
+        <div class="panel-body">
+          <form id="resolverForm">
+            <label>
+              URL
+              <input
+                type="text"
+                id="urlInput"
+                placeholder="bit.ly/abc123"
+                autocomplete="off"
+                spellcheck="false"
+                required
+              />
+            </label>
+
+            <div class="form-field">
+              <div class="form-field-label">
+                User-Agent chain
+                <span class="hint"
+                  >Platforms to try in order per hop until valid redirect; empty sends no User-Agent header.</span
+                >
+              </div>
+              <div class="ua-chain-editor" id="uaChainEditor"></div>
+            </div>
+
+            <div class="checkbox-row">
+              <label>
+                <input type="checkbox" id="enforceHttpScheme" checked />
+                enforce-http-scheme
+              </label>
+              <label>
+                <input type="checkbox" id="extractResponseBody" checked />
+                extract-response-body
+              </label>
+              <label>
+                <input type="checkbox" id="debugFlag" checked />
+                debug (worker IP lookup)
+              </label>
+            </div>
+
+            <div class="form-config" id="formConfig">
+              <button type="button" class="form-config-toggle" id="configToggle">
+                <span>Extra config</span>
+                <svg class="collapse-chevron" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                  <path d="M4 6l4 4 4-4"/>
+                </svg>
+              </button>
+              <div class="form-config-body" id="configBody">
+                <div class="form-config-body-inner">
+                  <label>
+                    Method
+                    <div class="method-pills" id="methodPills" role="group" aria-label="Method">
+                      <button type="button" class="method-pill active" data-method="POST">
+                        POST
+                      </button>
+                      <button type="button" class="method-pill" data-method="GET">
+                        GET
+                      </button>
+                    </div>
+                    <input type="hidden" id="methodSelect" value="POST" />
+                  </label>
+                  <label>
+                    API endpoint
+                    <input
+                      type="url"
+                      id="endpointInput"
+                      value="https://resolver.jeaurond.dev/"
+                      spellcheck="false"
+                    />
+                  </label>
+                </div>
+              </div>
+            </div>
+
+            <div class="form-actions">
+              <button type="submit" class="btn btn-primary" id="resolveBtn">
+                <svg class="btn-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                  <path d="M3 8h10"/>
+                  <path d="M9 4l4 4-4 4"/>
+                </svg>
+                <span class="btn-label">Resolve</span>
+              </button>
+            </div>
+          </form>
+        </div>
+        <div class="request-curl-footer is-open" id="curlSection">
+          <div class="request-section-header">
+            <button type="button" class="request-section-toggle" id="curlToggle">
+              <span class="request-section-title">cURL <span class="request-section-note">request locally</span></span>
+              <svg class="collapse-chevron" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <path d="M4 6l4 4 4-4"/>
+              </svg>
+            </button>
+            <button type="button" class="btn btn-sm btn-copy" id="copyCurlBtn">
+              <svg class="btn-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.25" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <rect x="5" y="5" width="9" height="9" rx="1"/>
+                <path d="M3 11V3a1 1 0 0 1 1-1h8"/>
+              </svg>
+              <span class="btn-label">Copy</span>
+            </button>
+          </div>
+          <div class="request-collapsible-body">
+            <div class="request-collapsible-inner">
+              <div class="request-section-body">
+                <pre id="curlDisplay"><code class="language-bash"></code></pre>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="request-history">
+          <div class="request-section-header">
+            <span class="request-section-title">History<span class="request-section-count" id="historyCount">0</span> <span class="request-section-note">local to this browser</span></span>
+            <button type="button" class="btn btn-sm" id="clearHistoryBtn">
+              <svg class="btn-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.25" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <path d="M2 4h12"/>
+                <path d="M5 4V3.5A.5.5 0 0 1 5.5 3h5a.5.5 0 0 1 .5.5V4"/>
+                <path d="M6 7v4.5M10 7v4.5"/>
+                <path d="M3.5 4l.75 8.5A1 1 0 0 0 5.25 13.5h5.5a1 1 0 0 0 1-1.05L12.5 4"/>
+              </svg>
+              <span class="btn-label">Clear</span>
+            </button>
+          </div>
+          <div class="request-section-body">
+            <div class="history-list" id="historyList"></div>
+          </div>
+        </div>
+      </section>
+
+      <section class="panel panel-result is-empty" id="resultPanelSection">
+        <div class="resolve-loading" id="resolveLoading" hidden aria-live="polite" aria-busy="false">
+          <div class="resolve-loading-backdrop" aria-hidden="true"></div>
+          <div class="resolve-loading-card">
+            <div class="resolve-loading-spinner" aria-hidden="true"></div>
+            <p class="resolve-loading-title">Resolving URL</p>
+            <p class="resolve-loading-status" id="resolveLoadingStatus">
+              Sending URL to the Cloudflare Worker…
+            </p>
+          </div>
+        </div>
+        <div class="panel-body" id="resultPanel">
+          <div class="result-toolbar">
+            <button type="button" class="btn btn-sm" id="viewJsonBtn" disabled>
+              <svg class="btn-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.25" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <path d="M5 3C3.5 3 3 4.5 3 6v4c0 1.5.5 3 2 3"/>
+                <path d="M11 3c1.5 0 2 1.5 2 3v4c0 1.5-.5 3-2 3"/>
+                <path d="M7 6.5h2"/>
+                <path d="M7 9.5h2"/>
+              </svg>
+              <span class="btn-label">Full JSON</span>
+            </button>
+          </div>
+          <div class="result-empty" id="resultEmpty">
+            <p>Enter a URL and press Resolve</p>
+            <p id="resultEmptySubmitHint"><kbd id="submitModKey">⌘</kbd>+<kbd>Enter</kbd> to submit</p>
+          </div>
+          <div class="result-content" id="resultContent">
+            <div id="resultView"></div>
+          </div>
+        </div>
+      </section>
+
+      <div class="request-sidebar-footer">
+        <span>Made by <a href="https://github.com/BenJeau" target="_blank" rel="noopener noreferrer">BenJeau</a></span>
+        <span class="request-sidebar-footer-sep" aria-hidden="true">·</span>
+        <span>Built on <a href="https://developers.cloudflare.com/workers/" target="_blank" rel="noopener noreferrer">Cloudflare Workers</a></span>
+      </div>
+    </main>
+
+    <div class="modal-overlay" id="jsonModal">
+      <div class="modal-box">
+        <div class="modal-header">
+          <div class="modal-header-title">
+            <h2>Full JSON</h2>
+            <span class="modal-header-note">raw JSON response from Cloudflare API</span>
+          </div>
+          <div class="modal-header-actions">
+            <button type="button" class="btn btn-sm btn-copy" id="copyJsonModalBtn">
+              <svg class="btn-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.25" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <rect x="5" y="5" width="9" height="9" rx="1"/>
+                <path d="M3 11V3a1 1 0 0 1 1-1h8"/>
+              </svg>
+              <span class="btn-label">Copy</span>
+            </button>
+            <button type="button" class="btn btn-sm" id="closeJsonModal">✕</button>
+          </div>
+        </div>
+        <div class="modal-body">
+          <pre id="jsonModalContent"><code class="language-json"></code></pre>
+        </div>
+      </div>
+    </div>
+
+    <div class="modal-overlay" id="glossaryModal">
+      <div class="modal-box">
+        <div class="modal-header">
+          <div class="modal-header-title">
+            <h2>Reasons &amp; rules</h2>
+            <span class="modal-header-note">stop reasons, embedded rules, and trail labels</span>
+          </div>
+          <button type="button" class="btn btn-sm" id="closeGlossaryModal">✕</button>
+        </div>
+        <div class="modal-body" id="glossaryModalContent"></div>
+      </div>
+    </div>
+
+    <div id="explainTooltip" class="explain-tooltip" hidden></div>
+
+    <script src="vendor/prism/prism.min.js"></script>
+    <script src="vendor/prism/components/prism-json.min.js"></script>
+    <script src="vendor/prism/components/prism-bash.min.js"></script>
+    <script>
+      const STORAGE_KEY = "url-resolver-history";
+      const MAX_HISTORY = 100;
+      const MOBILE_LAYOUT_MQ = window.matchMedia("(max-width: 1100px)");
+      const DEFAULT_ENDPOINT = "https://resolver.jeaurond.dev";
+      const DEFAULT_UA_CHAIN = ["ios", "android", "mac", "windows", "none"];
+      const ALL_UA = ["ios", "android", "mac", "windows", "none"];
+      const VALID_UA = new Set(ALL_UA);
+
+      const EXPLAIN = {
+        stop_reason: {
+          non_redirect_status:
+            "Last hop was not redirectable after UA retries (for example 200 or 404).",
+          missing_location_header:
+            "Hop returned 3xx but had no Location header.",
+          invalid_location_header:
+            "Location header existed but could not be parsed into a valid absolute URL.",
+          same_url_redirect:
+            "Redirect target is exactly the same URL as the current hop.",
+          cross_domain_redirect:
+            "Redirect target host differs from the original host and is not in the shortener continue set.",
+          max_hops_reached:
+            "Reached the configured hop limit before another terminal condition.",
+          upstream_timeout:
+            "Upstream request exceeded the per-hop timeout.",
+        },
+        embedded_rule: {
+          "google-url": "Google /url wrapper — extracts nested url or q param.",
+          "google-additnow": "Google additnow API link wrapper (__lu param).",
+          "google-adurl": "Google adurl query wrapper.",
+          "google-amp-path": "Google AMP /amp/s/ path prefix unwrap.",
+          "google-amp-path-no-s": "Google AMP /amp/ path prefix unwrap.",
+          "youtube-redirect": "YouTube /redirect wrapper.",
+          "facebook-lphp": "Facebook l.php link shim (u param).",
+          "facebook-flx-warn": "Facebook external link warning (u param).",
+          "telegram-iv": "Telegram instant view wrapper (url param).",
+          "instagram-linkshim": "Instagram link shim (u param).",
+          "instagram-accounts-login": "Instagram login redirect (next param).",
+          "duckduckgo-l": "DuckDuckGo redirect (/l/ with uddg param).",
+          "reddit-out": "Reddit outbound redirect (url param).",
+          "linkedin-redir": "LinkedIn redirect wrapper.",
+          "twitter-redirect": "Twitter/X /i/redirect wrapper.",
+          "twitter-unsafe-link-warning":
+            "Twitter/X unsafe link warning (unsafe_link param).",
+          "viglink-redirect": "VigLink redirect wrapper (u param).",
+        },
+        ua_retry: {
+          app_store_redirect:
+            "Mobile UA received an App Store / Play Store redirect — trying next UA.",
+          non_http_https_scheme:
+            "Location used a non-http(s) scheme — trying next UA when enforce-http-scheme is on.",
+          non_redirect_status:
+            "Response was not a redirect — trying next UA in chain.",
+          missing_location_header: "3xx without Location — trying next UA.",
+          invalid_location_header:
+            "Unparseable Location header — trying next UA.",
+          same_url_redirect: "Location points to same URL — trying next UA.",
+          upstream_timeout: "Hop timed out — trying next UA.",
+        },
+        url_trail: {
+          raw_destination: "Before embedded URL extraction.",
+          final_destination:
+            "After redirect following and embedded URL extraction.",
+        },
+      };
+
+      const $ = (id) => document.getElementById(id);
+
+      function bindPress(el, handler) {
+        const node = typeof el === "string" ? $(el) : el;
+        node.addEventListener("mousedown", (e) => {
+          if (e.button !== 0 || node.disabled) return;
+          e.preventDefault();
+          handler(e);
+        });
+        node.addEventListener("click", (e) => e.preventDefault());
+      }
+
+      function bindPressDelegate(root, selector, handler) {
+        const node = typeof root === "string" ? $(root) : root;
+        node.addEventListener("mousedown", (e) => {
+          if (e.button !== 0) return;
+          const target = e.target.closest(selector);
+          if (!target || !node.contains(target) || target.disabled) return;
+          e.preventDefault();
+          handler(e, target);
+        });
+        node.addEventListener("click", (e) => {
+          if (e.target.closest(selector)) e.preventDefault();
+        });
+      }
+
+      let uaChain = [...DEFAULT_UA_CHAIN];
+      let resolveHistory = loadResolveHistory();
+      let activeHistoryId = null;
+      let syncingFromUrl = false;
+      let lastResult = null;
+
+      function loadResolveHistory() {
+        try {
+          return JSON.parse(localStorage.getItem(STORAGE_KEY) || "[]");
+        } catch {
+          return [];
+        }
+      }
+
+      function saveResolveHistory() {
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(resolveHistory));
+      }
+
+      function getFormState() {
+        return {
+          endpoint: $("endpointInput").value.replace(/\/+$/, "") || DEFAULT_ENDPOINT,
+          url: $("urlInput").value.trim(),
+          method: $("methodSelect").value,
+          userAgent: [...uaChain],
+          enforceHttpScheme: $("enforceHttpScheme").checked,
+          extractResponseBody: $("extractResponseBody").checked,
+          debug: $("debugFlag").checked,
+        };
+      }
+
+      function uaChainEquals(a, b) {
+        return a.length === b.length && a.every((v, i) => v === b[i]);
+      }
+
+      function formStateToPageParams(state, { resolved = false, historyId = null } = {}) {
+        const params = new URLSearchParams();
+        if (state.url) params.set("url", state.url);
+        if (historyId) params.set("history", historyId);
+        if (state.endpoint !== DEFAULT_ENDPOINT) {
+          params.set("endpoint", state.endpoint);
+        }
+        if (state.method !== "POST") params.set("method", state.method);
+        if (!uaChainEquals(state.userAgent, DEFAULT_UA_CHAIN)) {
+          params.set("user-agent", state.userAgent.join(","));
+        }
+        if (!state.enforceHttpScheme) {
+          params.set("enforce-http-scheme", "false");
+        }
+        if (!state.extractResponseBody) {
+          params.set("extract-response-body", "false");
+        }
+        if (!state.debug) {
+          params.set("debug", "false");
+        }
+        if (resolved) params.set("resolve", "1");
+        return params;
+      }
+
+      function syncFormToUrl(resolved = false) {
+        if (syncingFromUrl) return;
+        const params = formStateToPageParams(getFormState(), {
+          resolved,
+          historyId: getActiveHistoryIdForUrl(),
+        });
+        const qs = params.toString();
+        const newUrl = qs
+          ? `${window.location.pathname}?${qs}`
+          : window.location.pathname;
+        window.history.replaceState(null, "", newUrl);
+        updateCurlDisplay();
+      }
+
+      function highlightCode(preEl, code, lang) {
+        preEl.textContent = "";
+        const codeEl = document.createElement("code");
+        codeEl.className = `language-${lang}`;
+        codeEl.textContent = code;
+        preEl.appendChild(codeEl);
+        if (window.Prism) Prism.highlightElement(codeEl);
+      }
+
+      function updateCurlDisplay() {
+        const state = getFormState();
+        highlightCode($("curlDisplay"), buildCurl(state), "bash");
+      }
+
+      function parseUaChain(raw) {
+        if (!raw) return [];
+        return raw
+          .split(",")
+          .map((s) => s.trim().toLowerCase())
+          .filter((s) => VALID_UA.has(s));
+      }
+
+      function setMethod(method) {
+        $("methodSelect").value = method;
+        $("methodPills")
+          .querySelectorAll(".method-pill")
+          .forEach((pill) => {
+            pill.classList.toggle("active", pill.dataset.method === method);
+          });
+      }
+
+      function syncConfigOpen() {
+        const endpoint =
+          $("endpointInput").value.replace(/\/+$/, "") || DEFAULT_ENDPOINT;
+        if (endpoint !== DEFAULT_ENDPOINT || $("methodSelect").value !== "POST") {
+          $("formConfig").classList.add("is-open");
+        }
+      }
+
+      function applyUrlToForm() {
+        syncingFromUrl = true;
+        const params = new URLSearchParams(window.location.search);
+
+        $("endpointInput").value = DEFAULT_ENDPOINT;
+        $("urlInput").value = "";
+        setMethod("POST");
+        uaChain = [...DEFAULT_UA_CHAIN];
+        $("enforceHttpScheme").checked = true;
+        $("extractResponseBody").checked = true;
+        $("debugFlag").checked = true;
+
+        if (params.has("endpoint")) {
+          $("endpointInput").value = params.get("endpoint");
+        }
+        if (params.has("url")) {
+          $("urlInput").value = params.get("url");
+        }
+        if (params.has("method")) {
+          const method = params.get("method").toUpperCase();
+          if (method === "GET" || method === "POST") {
+            setMethod(method);
+          }
+        }
+        if (params.has("user-agent")) {
+          uaChain = parseUaChain(params.get("user-agent"));
+        }
+        if (params.has("enforce-http-scheme")) {
+          $("enforceHttpScheme").checked =
+            params.get("enforce-http-scheme").toLowerCase() !== "false";
+        }
+        if (params.has("extract-response-body")) {
+          $("extractResponseBody").checked =
+            params.get("extract-response-body").toLowerCase() !== "false";
+        }
+        if (params.has("debug")) {
+          $("debugFlag").checked = params.get("debug").toLowerCase() !== "false";
+        }
+
+        renderUaOrder();
+        syncConfigOpen();
+        updateCurlDisplay();
+        syncingFromUrl = false;
+      }
+
+      function buildQueryParams(state) {
+        const params = new URLSearchParams();
+        if (state.userAgent.length > 0) {
+          params.set("user-agent", state.userAgent.join(","));
+        }
+        if (!state.enforceHttpScheme) {
+          params.set("enforce-http-scheme", "false");
+        }
+        if (state.extractResponseBody) {
+          params.set("extract-response-body", "true");
+        }
+        if (state.debug) {
+          params.set("debug", "true");
+        }
+        return params;
+      }
+
+      function buildCurl(state) {
+        const params = buildQueryParams(state);
+        let url = state.endpoint;
+        const bodyUrl = state.url || "bit.ly/abc123";
+
+        if (state.method === "GET") {
+          params.set("url", bodyUrl);
+          const qs = params.toString();
+          url += qs ? "?" + qs : "";
+          return `curl "${url}"`;
+        }
+
+        const qs = params.toString();
+        if (qs) url += "?" + qs;
+
+        const escaped = bodyUrl.replace(/'/g, "'\\''");
+        return (
+          `curl -X POST "${url}" \\\n` +
+          `  -H "Content-Type: text/plain" \\\n` +
+          `  --data '${escaped}'`
+        );
+      }
+
+      function buildRequestUrl(state) {
+        const params = buildQueryParams(state);
+        let url = state.endpoint;
+
+        if (state.method === "GET") {
+          params.set("url", state.url);
+        }
+
+        const qs = params.toString();
+        if (qs) url += "?" + qs;
+        return url;
+      }
+
+      function clearPhantomHover(el) {
+        el.style.pointerEvents = "none";
+        requestAnimationFrame(() => {
+          el.style.pointerEvents = "";
+        });
+      }
+
+      function renderUaOrder() {
+        const container = $("uaChainEditor");
+        container.innerHTML = "";
+        const selected = new Set(uaChain);
+
+        uaChain.forEach((ua, i) => {
+          const el = document.createElement("span");
+          el.className = "ua-order-item";
+          el.innerHTML = `<span class="ua-order-index">${i + 1}.</span> ${ua} <button type="button" aria-label="Remove">×</button>`;
+          el.querySelector("button").addEventListener("mousedown", (e) => {
+            if (e.button !== 0) return;
+            e.preventDefault();
+            uaChain.splice(i, 1);
+            renderUaOrder();
+            syncFormToUrl();
+          });
+          el.querySelector("button").addEventListener("click", (e) =>
+            e.preventDefault(),
+          );
+          container.appendChild(el);
+        });
+
+        ALL_UA.filter((ua) => !selected.has(ua)).forEach((ua) => {
+          const chip = document.createElement("button");
+          chip.type = "button";
+          chip.className = "ua-chip";
+          chip.dataset.ua = ua;
+          chip.textContent = ua;
+          container.appendChild(chip);
+        });
+
+        clearPhantomHover(container);
+      }
+
+      function escHtml(s) {
+        return String(s)
+          .replace(/&/g, "&amp;")
+          .replace(/</g, "&lt;")
+          .replace(/>/g, "&gt;")
+          .replace(/"/g, "&quot;");
+      }
+
+      function explainable(category, id, label) {
+        const text = EXPLAIN[category]?.[id];
+        if (!text) return escHtml(label);
+        return `<span class="explainable" data-explain-cat="${escHtml(category)}" data-explain-id="${escHtml(id)}">${escHtml(label)}</span>`;
+      }
+
+      function positionExplainTooltip(e) {
+        const tip = $("explainTooltip");
+        tip.style.left =
+          Math.min(e.clientX + 12, window.innerWidth - 300) + "px";
+        tip.style.top = e.clientY + 14 + "px";
+      }
+
+      function bindExplainables() {
+        const tip = $("explainTooltip");
+        document.querySelectorAll(".explainable").forEach((el) => {
+          el.addEventListener("mouseenter", (e) => {
+            const text = EXPLAIN[el.dataset.explainCat]?.[el.dataset.explainId];
+            if (!text) return;
+            tip.textContent = text;
+            tip.hidden = false;
+            positionExplainTooltip(e);
+          });
+          el.addEventListener("mousemove", positionExplainTooltip);
+          el.addEventListener("mouseleave", () => {
+            tip.hidden = true;
+          });
+        });
+      }
+
+      function renderGlossaryHtml() {
+        const section = (title, category) => {
+          const entries = Object.entries(EXPLAIN[category] || {});
+          if (!entries.length) return "";
+          return `
+            <div class="glossary-section">
+              <h3>${title}</h3>
+              <div class="glossary-grid">
+              ${entries
+                .map(
+                  ([id, desc]) => `
+                <dl class="glossary-entry">
+                  <dt>${escHtml(id)}</dt>
+                  <dd>${escHtml(desc)}</dd>
+                </dl>`,
+                )
+                .join("")}
+              </div>
+            </div>`;
+        };
+        return (
+          section("Reasons resolving stopped", "stop_reason") +
+          section("Embedded URL rules", "embedded_rule") +
+          section("User-Agent retry reasons", "ua_retry")
+        );
+      }
+
+      function openGlossaryModal() {
+        $("glossaryModalContent").innerHTML = renderGlossaryHtml();
+        $("glossaryModal").classList.add("open");
+      }
+
+      function closeGlossaryModal() {
+        $("glossaryModal").classList.remove("open");
+      }
+
+      function isApplePlatform() {
+        return /Mac|iPhone|iPad|iPod/i.test(navigator.userAgent);
+      }
+
+      function initSubmitShortcutHint() {
+        const modKey = $("submitModKey");
+        if (modKey) modKey.textContent = isApplePlatform() ? "⌘" : "Ctrl";
+      }
+
+      function historyMatchesState(request, state) {
+        return (
+          request.url === state.url &&
+          request.endpoint === state.endpoint &&
+          request.method === state.method &&
+          uaChainEquals(request.userAgent, state.userAgent) &&
+          request.enforceHttpScheme === state.enforceHttpScheme &&
+          request.extractResponseBody === state.extractResponseBody &&
+          request.debug === state.debug
+        );
+      }
+
+      function getActiveHistoryIdForUrl() {
+        if (!activeHistoryId) return null;
+        const entry = resolveHistory.find((h) => h.id === activeHistoryId);
+        if (!entry) return null;
+        if (!historyMatchesState(entry.request, getFormState())) return null;
+        return activeHistoryId;
+      }
+
+      function restoreHistoryEntry(entry) {
+        activeHistoryId = entry.id;
+        renderResult(entry.response, entry.httpStatus);
+        renderHistoryList();
+      }
+
+      function tryRestoreFromHistoryOnLoad() {
+        const params = new URLSearchParams(window.location.search);
+        const historyId = params.get("history");
+
+        if (historyId) {
+          const entry = resolveHistory.find((h) => h.id === historyId);
+          if (entry) {
+            restoreHistoryEntry(entry);
+            syncFormToUrl(false);
+            return true;
+          }
+        }
+
+        const state = getFormState();
+        if (!state.url) return false;
+        const match = resolveHistory.find((h) =>
+          historyMatchesState(h.request, state),
+        );
+        if (!match) return false;
+        restoreHistoryEntry(match);
+        syncFormToUrl(false);
+        return true;
+      }
+
+      async function maybeAutoResolve() {
+        const params = new URLSearchParams(window.location.search);
+        if (params.get("resolve") !== "1" || !params.get("url")?.trim()) return;
+        await resolve();
+      }
+
+      function handleUrlNavigation() {
+        applyUrlToForm();
+        if (!getFormState().url.trim()) return;
+
+        if (tryRestoreFromHistoryOnLoad()) return;
+
+        const params = new URLSearchParams(window.location.search);
+        if (params.get("resolve") === "1") {
+          maybeAutoResolve();
+        }
+      }
+
+      function renderHeadersHtml(headers) {
+        const entries = Object.entries(headers || {});
+        if (!entries.length) return "";
+        return `
+          <div class="hop-detail-subhead">Response headers</div>
+          <div class="headers-grid">
+            ${entries
+              .map(
+                ([k, v]) => `
+              <div class="header-row">
+                <span class="h-key">${escHtml(k)}</span>
+                <span class="h-val break-url">${escHtml(v)}</span>
+              </div>`,
+              )
+              .join("")}
+          </div>`;
+      }
+
+      function renderUaAttemptsHtml(attempts) {
+        if (!attempts?.length) return "";
+        return `
+          <div class="hop-detail-subhead">User-Agent attempts</div>
+          ${attempts
+            .map(
+              (ua, i) => `
+            <div class="ua-attempt">
+              <div class="ua-attempt-head">
+                <span class="ua-attempt-type">${i + 1}. ${escHtml(ua.type)}</span>
+                ${ua.retry_reason ? `<span class="ua-attempt-retry">${explainable("ua_retry", ua.retry_reason, ua.retry_reason)}</span>` : ""}
+              </div>
+              <div class="ua-attempt-val">${ua.value != null ? escHtml(ua.value) : "no User-Agent header"}</div>
+              ${ua.resolved_url != null ? `<div class="ua-attempt-val break-url">→ ${escHtml(ua.resolved_url)}</div>` : ""}
+            </div>`,
+            )
+            .join("")}`;
+      }
+
+      function renderHopDetailHtml(hop) {
+        if (hop.type === "extraction") {
+          return `
+            <div class="hop-detail">
+              <div class="hop-detail-pair">
+                <div class="hop-detail-cell">
+                  <span class="hop-detail-key">Rule</span>
+                  <span class="hop-detail-val">${explainable("embedded_rule", hop.rule_id, hop.rule_id)}</span>
+                </div>
+                <div class="hop-detail-cell">
+                  <span class="hop-detail-key">Out</span>
+                  <span class="hop-detail-val break-url">${escHtml(hop.next_url ?? "—")}</span>
+                </div>
+              </div>
+            </div>`;
+        }
+
+        let html = `
+          <div class="hop-detail">
+            <div class="hop-detail-pair">
+              <div class="hop-detail-cell">
+                <span class="hop-detail-key">Request</span>
+                <span class="hop-detail-val break-url">${escHtml(hop.request?.url ?? "—")}</span>
+              </div>
+              <div class="hop-detail-cell">
+                <span class="hop-detail-key">Location</span>
+                <span class="hop-detail-val break-url">${escHtml(hop.next_url ?? "—")}</span>
+              </div>
+            </div>`;
+
+        html += renderUaAttemptsHtml(hop.request?.user_agents);
+        html += renderHeadersHtml(hop.response?.headers);
+
+        const body = hop.response?.body;
+        if (body != null && String(body).trim() !== "") {
+          html += `
+            <div class="hop-detail-subhead">Response body</div>
+            <pre class="hop-body-text">${escHtml(body)}</pre>`;
+        }
+
+        html += `</div>`;
+        return html;
+      }
+
+      function lastHopUserAgent(hop) {
+        if (hop.type === "extraction") return null;
+        const attempts = hop.request?.user_agents;
+        if (!attempts?.length) return null;
+        return attempts[attempts.length - 1]?.type ?? null;
+      }
+
+      function renderUrlPathHtml(urls) {
+        const steps = [
+          { label: "Input", url: urls?.input },
+          { label: "Normalized", url: urls?.normalized },
+          {
+            label: "Raw destination",
+            url: urls?.raw_destination,
+            explainId: "raw_destination",
+          },
+          {
+            label: "Final destination",
+            url: urls?.destination,
+            explainId: "final_destination",
+            terminal: true,
+            destination: true,
+          },
+        ];
+
+        return `
+          <div class="url-path">
+            ${steps
+              .map(
+                (step, i) => `
+              <div class="url-path-step${step.terminal ? " is-terminal" : ""}${step.destination ? " is-destination" : ""}">
+                <div class="url-path-rail">
+                  <span class="url-path-node">${i + 1}</span>
+                  ${step.terminal ? "" : '<span class="url-path-segment"></span>'}
+                </div>
+                <div class="url-path-content">
+                  <div class="url-path-label">${
+                    step.explainId
+                      ? explainable("url_trail", step.explainId, step.label)
+                      : escHtml(step.label)
+                  }</div>
+                  <div class="url-path-url break-url">${escHtml(step.url ?? "—")}</div>
+                </div>
+              </div>`,
+              )
+              .join("")}
+          </div>`;
+      }
+
+      function httpStatusClass(status) {
+        const code = Number(status);
+        if (!Number.isFinite(code)) return "";
+        if (code >= 500) return "is-5xx";
+        if (code >= 400) return "is-4xx";
+        if (code >= 300) return "is-3xx";
+        if (code >= 200) return "is-2xx";
+        return "";
+      }
+
+      function renderResponseMetaHtml(status, timingMs) {
+        const parts = [];
+        if (status != null) {
+          parts.push(
+            `<span class="hop-status ${httpStatusClass(status)}">${escHtml(String(status))}</span>`,
+          );
+        }
+        if (timingMs != null) {
+          parts.push(
+            `<span class="hop-timing">${timingMs}<span class="hop-timing-unit">ms</span></span>`,
+          );
+        }
+        if (!parts.length) return "";
+        return `<span class="hop-meta">${parts.join("")}</span>`;
+      }
+
+      function renderHopMetaHtml(hop, isExtraction) {
+        if (isExtraction) {
+          return hop.timing_ms != null
+            ? renderResponseMetaHtml(null, hop.timing_ms)
+            : "";
+        }
+        return renderResponseMetaHtml(hop.status, hop.timing_ms);
+      }
+
+      function renderHopsHtml(hops) {
+        if (hops.length === 0) {
+          return '<p style="color:var(--muted);font-size:0.8125rem">No hops recorded.</p>';
+        }
+
+        return `<div class="hops-list">${hops
+          .map((hop, i) => {
+            const isExtraction = hop.type === "extraction";
+            const summary = isExtraction
+              ? hop.rule_id + " → " + (hop.next_url ?? "")
+              : (hop.request?.url ?? "") + " → " + (hop.next_url ?? "null");
+            const lastUa = lastHopUserAgent(hop);
+            const uaTag = lastUa
+              ? `<span class="ua-tag ua-${escHtml(lastUa)}">${escHtml(lastUa)}</span>`
+              : "";
+            const meta = renderHopMetaHtml(hop, isExtraction);
+            return `
+            <div class="hop-row${isExtraction ? " is-extraction" : ""}">
+              <div class="hop-header" data-hop="${i}">
+                <span class="hop-type ${isExtraction ? "extraction" : ""}">${hop.type}</span>
+                <span class="hop-summary">${escHtml(summary)}</span>
+                ${uaTag}
+                ${meta}
+              </div>
+              <div class="hop-body" id="hop-body-${i}">
+                <div class="hop-body-inner">
+                  ${renderHopDetailHtml(hop)}
+                </div>
+              </div>
+            </div>`;
+          })
+          .join("")}</div>`;
+      }
+
+      function formatWorkerLocation(w) {
+        return [w.city, w.region, w.country, w.continent]
+          .filter((v) => v != null && v !== "")
+          .join(", ") || "—";
+      }
+
+      function renderWorkerHtml(w) {
+        if (!w) {
+          return '<p style="color:var(--muted);font-size:0.8125rem">No worker info.</p>';
+        }
+
+        const ipLabel = w.ip ?? "IP not resolved (enable debug)";
+        const networkHtml = w.asn != null
+          ? `${escHtml(ipLabel)} · <span class="worker-asn">AS${escHtml(w.asn)}</span>`
+          : escHtml(ipLabel);
+
+        const extras = [
+          ["Colo", w.colo],
+          ["Timezone", w.timezone],
+          ["CF-Ray", w.cf_ray],
+        ].filter(([, v]) => v != null && v !== "");
+
+        return `
+          <div class="worker-block">
+            <div class="worker-origination">
+              <span class="worker-network">${networkHtml}</span>
+              <span class="worker-orig-sep" aria-hidden="true">·</span>
+              <span class="worker-loc-inline">${escHtml(formatWorkerLocation(w))}</span>
+            </div>
+          </div>
+          ${
+            extras.length
+              ? `<div class="worker-extras">${extras
+                  .map(
+                    ([k, v]) =>
+                      `<span><strong>${escHtml(k)}</strong> ${escHtml(v)}</span>`,
+                  )
+                  .join("")}</div>`
+              : ""
+          }`;
+      }
+
+      function renderSummaryHtml(data, httpStatus) {
+        const upstreamStatus = data.status ?? "—";
+        const redirects = data.redirects_followed ?? "—";
+        const timing =
+          data.timing_ms != null ? data.timing_ms + " ms" : "—";
+        const stopReason = data.stop_reason ?? "—";
+        const embeddedRule = data.embedded_url_rule;
+        const embeddedRuleVal =
+          embeddedRule == null || embeddedRule === "none"
+            ? escHtml(String(embeddedRule ?? "none"))
+            : explainable("embedded_rule", embeddedRule, embeddedRule);
+
+        const apiNote =
+          httpStatus >= 400
+            ? `<div class="error-box" style="margin-bottom:4px">Worker API returned ${httpStatus}</div>`
+            : "";
+
+        return `
+          ${apiNote}
+          <div class="stats-row-header">
+            <span class="stats-section-label">Outcome</span>
+            <button type="button" class="glossary-link" id="openGlossaryBtn">All reasons &amp; rules</button>
+          </div>
+          <div class="stats-row">
+            <div class="stat-item accent">
+              <div class="key">Upstream status</div>
+              <div class="val">${upstreamStatus}</div>
+              <div class="hint">HTTP status from the last hop fetch</div>
+            </div>
+            <div class="stat-item">
+              <div class="key">Total time</div>
+              <div class="val">${timing}</div>
+              <div class="hint">End-to-end resolver duration</div>
+            </div>
+            <div class="stat-item">
+              <div class="key">Redirects followed</div>
+              <div class="val">${redirects}</div>
+              <div class="hint">Same-host redirects accepted before stopping</div>
+            </div>
+            <div class="stat-item">
+              <div class="key">Stop reason</div>
+              <div class="val compact">${explainable("stop_reason", stopReason, stopReason)}</div>
+              <div class="hint">Reason to stop resolving</div>
+            </div>
+            <div class="stat-item">
+              <div class="key">Embedded rule</div>
+              <div class="val compact">${embeddedRuleVal}</div>
+              <div class="hint">Wrapper rule applied to final URL</div>
+            </div>
+          </div>
+
+          <div class="meta-section">
+            <div class="meta-section-title">URL trail</div>
+            ${renderUrlPathHtml(data.urls)}
+          </div>`;
+      }
+
+      function syncResultPanelEmptyState() {
+        const isEmpty = !$("resultContent").classList.contains("visible");
+        $("resultPanelSection").classList.toggle("is-empty", isEmpty);
+      }
+
+      function resetResultPanel() {
+        lastResult = null;
+        $("viewJsonBtn").disabled = true;
+        $("resultEmpty").style.display = "";
+        $("resultContent").classList.remove("visible");
+        document.querySelector(".result-toolbar")?.classList.remove("visible");
+        $("resultView").innerHTML = "";
+        closeJsonModal();
+        syncResultPanelEmptyState();
+      }
+
+      function renderResult(data, httpStatus) {
+        lastResult = data;
+        $("viewJsonBtn").disabled = !data;
+
+        const dest = data.urls?.destination ?? data.error ?? "—";
+        const isError = !!data.error;
+
+        $("resultEmpty").style.display = "none";
+        $("resultContent").classList.add("visible");
+        document.querySelector(".result-toolbar")?.classList.add("visible");
+        syncResultPanelEmptyState();
+
+        if (isError) {
+          $("resultView").innerHTML = `<div class="error-box">${escHtml(JSON.stringify(data, null, 2))}</div>`;
+          return;
+        }
+
+        const hopCount = data.hops?.length ?? 0;
+
+        $("resultView").innerHTML = `
+          <div class="destination-display">
+            <div class="label">Final destination</div>
+            <p class="dest-url break-url"><span class="dest-text">${escHtml(dest)}</span></p>
+            <div class="field-hint">After redirect following and embedded URL extraction</div>
+          </div>
+          ${renderSummaryHtml(data, httpStatus)}
+          <div class="section-heading-row">
+            <div class="section-heading">Hops<span class="section-count">${hopCount}</span></div>
+          </div>
+          ${renderHopsHtml(data.hops ?? [])}
+          <div class="section-heading">Request origin</div>
+          <p class="field-hint section-lead">Cloudflare Worker edge — egress IP, ASN, and location for this resolve</p>
+          ${renderWorkerHtml(data.worker)}`;
+
+        bindExplainables();
+      }
+
+      function renderHistoryList() {
+        const countEl = $("historyCount");
+        if (countEl) countEl.textContent = String(resolveHistory.length);
+
+        const list = $("historyList");
+        if (resolveHistory.length === 0) {
+          list.innerHTML =
+            '<p class="history-empty">No history yet. Resolved URLs are saved locally in this browser.</p>';
+          return;
+        }
+
+        list.innerHTML = resolveHistory
+          .map((entry) => {
+            const dest =
+              entry.response?.urls?.destination ??
+              entry.response?.error ??
+              "—";
+            const isActive = entry.id === activeHistoryId;
+            const redirects = entry.response?.redirects_followed;
+            const upstreamStatus = entry.response?.status;
+            const timing = entry.response?.timing_ms;
+            const statusTiming = renderResponseMetaHtml(upstreamStatus, timing);
+            return `
+            <div class="history-item ${isActive ? "active" : ""}" data-id="${entry.id}">
+              <div class="hist-url break-url">${escHtml(entry.request.url)}</div>
+              <div class="hist-meta">
+                <span class="hist-meta-main">
+                  <span class="hist-date">${new Date(entry.timestamp).toLocaleString()}</span>
+                  ${redirects != null ? `<span class="hist-redirects">${redirects} redirect${redirects === 1 ? "" : "s"}</span>` : ""}
+                </span>
+                ${statusTiming}
+              </div>
+              <div class="hist-dest break-url">${escHtml(dest)}</div>
+            </div>`;
+          })
+          .join("");
+      }
+
+      function addToHistory(request, response, httpStatus) {
+        const entry = {
+          id: crypto.randomUUID(),
+          timestamp: new Date().toISOString(),
+          request,
+          response,
+          httpStatus,
+        };
+        resolveHistory.unshift(entry);
+        if (resolveHistory.length > MAX_HISTORY) resolveHistory.length = MAX_HISTORY;
+        saveResolveHistory();
+        activeHistoryId = entry.id;
+        renderHistoryList();
+        scrollHistoryToTop();
+        return entry;
+      }
+
+      function scrollHistoryToTop() {
+        const body = document.querySelector(".request-history .request-section-body");
+        if (body) body.scrollTop = 0;
+      }
+
+      function loadHistoryEntry(id) {
+        const entry = resolveHistory.find((h) => h.id === id);
+        if (!entry) return;
+
+        activeHistoryId = id;
+        $("endpointInput").value = entry.request.endpoint;
+        $("urlInput").value = entry.request.url;
+        setMethod(entry.request.method);
+        uaChain = [...entry.request.userAgent];
+        renderUaOrder();
+        $("enforceHttpScheme").checked = entry.request.enforceHttpScheme;
+        $("extractResponseBody").checked = entry.request.extractResponseBody;
+        $("debugFlag").checked = entry.request.debug;
+        syncConfigOpen();
+        renderResult(entry.response, entry.httpStatus);
+        renderHistoryList();
+        syncFormToUrl(false);
+      }
+
+      function setBtnLabel(btn, text) {
+        const label = btn?.querySelector(".btn-label");
+        if (label) label.textContent = text;
+        else if (btn) btn.textContent = text;
+      }
+
+      async function copyText(text, btn) {
+        try {
+          await navigator.clipboard.writeText(text);
+          if (btn) {
+            btn.classList.add("btn-copied");
+            const label = btn.querySelector(".btn-label");
+            const orig = label ? label.textContent : btn.textContent;
+            setBtnLabel(btn, "Copied!");
+            setTimeout(() => {
+              btn.classList.remove("btn-copied");
+              setBtnLabel(btn, orig);
+            }, 1500);
+          }
+        } catch {
+          alert("Failed to copy to clipboard");
+        }
+      }
+
+      const RESOLVE_STATUS_MESSAGES = [
+        "Sending URL to the Cloudflare Worker…",
+        "Following redirects on the original host…",
+        "Checking for embedded wrapper URLs…",
+        "Waiting for the final response…",
+      ];
+
+      let resolveLoadingTimer = null;
+      let resolveStepIndex = 0;
+
+      function isMobileLayout() {
+        return MOBILE_LAYOUT_MQ.matches;
+      }
+
+      function scrollToResultsIfMobile() {
+        if (!isMobileLayout()) return;
+        requestAnimationFrame(() => {
+          $("resultPanelSection").scrollIntoView({
+            behavior: "smooth",
+            block: "start",
+          });
+        });
+      }
+
+      function setResolveLoadingStatus(text) {
+        const el = $("resolveLoadingStatus");
+        el.classList.add("is-changing");
+        window.setTimeout(() => {
+          el.textContent = text;
+          el.classList.remove("is-changing");
+        }, 90);
+      }
+
+      function startResolveLoading() {
+        const overlay = $("resolveLoading");
+        const panel = $("resultPanelSection");
+        resolveStepIndex = 0;
+        setResolveLoadingStatus(RESOLVE_STATUS_MESSAGES[0]);
+        overlay.hidden = false;
+        overlay.setAttribute("aria-busy", "true");
+        panel.classList.add("is-resolving");
+        requestAnimationFrame(() => {
+          requestAnimationFrame(() => overlay.classList.add("open"));
+        });
+        scrollToResultsIfMobile();
+        resolveLoadingTimer = window.setInterval(() => {
+          resolveStepIndex =
+            (resolveStepIndex + 1) % RESOLVE_STATUS_MESSAGES.length;
+          setResolveLoadingStatus(RESOLVE_STATUS_MESSAGES[resolveStepIndex]);
+        }, 1800);
+      }
+
+      function stopResolveLoading() {
+        window.clearInterval(resolveLoadingTimer);
+        resolveLoadingTimer = null;
+        const overlay = $("resolveLoading");
+        const panel = $("resultPanelSection");
+        overlay.classList.remove("open");
+        overlay.setAttribute("aria-busy", "false");
+        panel.classList.remove("is-resolving");
+        const finishHide = () => {
+          if (!overlay.classList.contains("open")) overlay.hidden = true;
+        };
+        const backdrop = overlay.querySelector(".resolve-loading-backdrop");
+        const onEnd = (e) => {
+          if (e.target !== backdrop) return;
+          if (
+            e.propertyName !== "backdrop-filter" &&
+            e.propertyName !== "-webkit-backdrop-filter"
+          ) {
+            return;
+          }
+          if (overlay.classList.contains("open")) return;
+          finishHide();
+          backdrop.removeEventListener("transitionend", onEnd);
+        };
+        backdrop.addEventListener("transitionend", onEnd);
+        window.setTimeout(finishHide, 360);
+      }
+
+      async function resolve() {
+        const state = getFormState();
+        if (!state.url) return;
+
+        const btn = $("resolveBtn");
+        btn.disabled = true;
+        setBtnLabel(btn, "Resolving…");
+        startResolveLoading();
+
+        let data;
+        let httpStatus;
+
+        try {
+          const requestUrl = buildRequestUrl(state);
+          const opts = { method: state.method };
+
+          if (state.method === "POST") {
+            opts.headers = { "Content-Type": "text/plain" };
+            opts.body = state.url;
+          }
+
+          const response = await fetch(requestUrl, opts);
+          httpStatus = response.status;
+          data = await response.json();
+        } catch (err) {
+          httpStatus = 0;
+          data = { error: "Request failed", details: String(err) };
+        }
+
+        btn.disabled = false;
+        setBtnLabel(btn, "Resolve");
+        stopResolveLoading();
+
+        renderResult(data, httpStatus);
+        addToHistory(state, data, httpStatus);
+        syncFormToUrl(true);
+      }
+
+      function bindFormSync() {
+        const sync = () => syncFormToUrl();
+        $("endpointInput").addEventListener("input", () => {
+          syncConfigOpen();
+          sync();
+        });
+        $("urlInput").addEventListener("input", sync);
+        $("methodPills").addEventListener("mousedown", (e) => {
+          if (e.button !== 0) return;
+          const pill = e.target.closest(".method-pill");
+          if (!pill) return;
+          e.preventDefault();
+          setMethod(pill.dataset.method);
+          syncConfigOpen();
+          sync();
+        });
+        $("methodPills").addEventListener("click", (e) => {
+          if (e.target.closest(".method-pill")) e.preventDefault();
+        });
+        $("enforceHttpScheme").addEventListener("change", sync);
+        $("extractResponseBody").addEventListener("change", sync);
+        $("debugFlag").addEventListener("change", sync);
+        bindPress("configToggle", () => {
+          $("formConfig").classList.toggle("is-open");
+        });
+        bindPress("curlToggle", () => {
+          $("curlSection").classList.toggle("is-open");
+        });
+      }
+
+      bindPressDelegate("uaChainEditor", ".ua-chip", (_e, chip) => {
+        uaChain.push(chip.dataset.ua);
+        renderUaOrder();
+        syncFormToUrl();
+      });
+
+      bindPress("resolveBtn", () => resolve());
+
+      $("resolverForm").addEventListener("submit", (e) => {
+        e.preventDefault();
+        resolve();
+      });
+
+      document.addEventListener("keydown", (e) => {
+        if ((e.metaKey || e.ctrlKey) && e.key === "Enter") {
+          e.preventDefault();
+          resolve();
+        }
+      });
+
+      function openJsonModal() {
+        if (!lastResult) return;
+        highlightCode(
+          $("jsonModalContent"),
+          JSON.stringify(lastResult, null, 2),
+          "json",
+        );
+        $("jsonModal").classList.add("open");
+      }
+
+      function closeJsonModal() {
+        $("jsonModal").classList.remove("open");
+      }
+
+      bindPress("viewJsonBtn", openJsonModal);
+
+      bindPress("copyCurlBtn", () => {
+        copyText(buildCurl(getFormState()), $("copyCurlBtn"));
+      });
+
+      bindPress("copyJsonModalBtn", () => {
+        if (!lastResult) return;
+        copyText(JSON.stringify(lastResult, null, 2), $("copyJsonModalBtn"));
+      });
+
+      bindPress("closeJsonModal", closeJsonModal);
+
+      $("jsonModal").addEventListener("click", (e) => {
+        if (e.target === $("jsonModal")) closeJsonModal();
+      });
+
+      bindPressDelegate("resultPanel", "#openGlossaryBtn", () =>
+        openGlossaryModal(),
+      );
+
+      bindPress("closeGlossaryModal", closeGlossaryModal);
+
+      $("glossaryModal").addEventListener("click", (e) => {
+        if (e.target === $("glossaryModal")) closeGlossaryModal();
+      });
+
+      bindPress(document.querySelector(".brand-home"), () => {
+        window.location.assign("./");
+      });
+
+      bindPressDelegate("historyList", ".history-item", (_e, el) =>
+        loadHistoryEntry(el.dataset.id),
+      );
+
+      bindPressDelegate("resultView", ".hop-header", (_e, el) => {
+        const body = $("hop-body-" + el.dataset.hop);
+        const row = el.closest(".hop-row");
+        body.classList.toggle("open");
+        row.classList.toggle("is-open", body.classList.contains("open"));
+      });
+
+      bindPressDelegate("resultView", ".explainable", (e) => {
+        e.stopPropagation();
+        openGlossaryModal();
+      });
+
+      bindPress("clearHistoryBtn", () => {
+        resolveHistory = [];
+        activeHistoryId = null;
+        saveResolveHistory();
+        renderHistoryList();
+        resetResultPanel();
+        syncFormToUrl(false);
+      });
+
+      bindFormSync();
+      initSubmitShortcutHint();
+      renderHistoryList();
+      handleUrlNavigation();
+
+      window.addEventListener("popstate", handleUrlNavigation);
+    </script>
+  </body>
+</html>
