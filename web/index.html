@@ -3833,6 +3833,11 @@
           sync();
         });
         $("urlInput").addEventListener("input", sync);
+        $("urlInput").addEventListener("keydown", (e) => {
+          if (e.key !== "Enter") return;
+          e.preventDefault();
+          resolve();
+        });
         $("methodPills").addEventListener("mousedown", (e) => {
           if (e.button !== 0) return;
           const pill = e.target.closest(".method-pill");
