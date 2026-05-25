@@ -1157,6 +1157,18 @@
         margin-top: 16px;
       }
 
+      @media (prefers-reduced-motion: reduce) {
+        .url-path-step.is-destination .url-path-node {
+          animation: none;
+        }
+
+        .url-path-step.is-destination .url-path-node::before,
+        .url-path-step.is-destination .url-path-node::after {
+          animation: none;
+          display: none;
+        }
+      }
+
       .stats-row {
         border-bottom: 1px solid var(--border);
         display: grid;
@@ -1270,6 +1282,7 @@
         display: flex;
         flex-direction: column;
         min-height: 100%;
+        overflow: visible;
         padding-top: 2px;
       }
 
@@ -1321,9 +1334,56 @@
       }
 
       .url-path-step.is-destination .url-path-node {
+        animation: destination-node-halo 3.2s ease-in-out infinite;
         background: var(--accent);
-        box-shadow: 0 0 0 4px var(--accent-dim);
+        box-shadow: 0 0 0 3px var(--accent-dim);
         color: var(--accent-on-primary);
+        overflow: visible;
+        position: relative;
+      }
+
+      .url-path-step.is-destination .url-path-node::before,
+      .url-path-step.is-destination .url-path-node::after {
+        animation: destination-node-wave 3.2s ease-in-out infinite;
+        border: 1.5px solid var(--accent);
+        border-radius: 50%;
+        content: "";
+        inset: -4px;
+        pointer-events: none;
+        position: absolute;
+      }
+
+      .url-path-step.is-destination .url-path-node::after {
+        animation-delay: 1.6s;
+      }
+
+      @keyframes destination-node-halo {
+        0%,
+        100% {
+          box-shadow: 0 0 0 3px var(--accent-dim);
+        }
+
+        50% {
+          box-shadow:
+            0 0 0 5px var(--accent-dim),
+            0 0 0 9px #0d948818;
+        }
+      }
+
+      @keyframes destination-node-wave {
+        0% {
+          opacity: 0;
+          transform: scale(0.9);
+        }
+
+        35% {
+          opacity: 0.5;
+        }
+
+        100% {
+          opacity: 0;
+          transform: scale(1.85);
+        }
       }
 
       .url-path-step.is-destination .url-path-url {
@@ -2653,8 +2713,7 @@
             </button>
           </div>
           <div class="result-empty" id="resultEmpty">
-            <p>Enter a URL and press Resolve</p>
-            <p id="resultEmptySubmitHint"><kbd id="submitModKey">⌘</kbd>+<kbd>Enter</kbd> to submit</p>
+            <p>Enter a URL and press <kbd>Enter</kbd></p>
           </div>
           <div class="result-content" id="resultContent">
             <div id="resultView"></div>
@@ -3125,15 +3184,6 @@
 
       function closeGlossaryModal() {
         $("glossaryModal").classList.remove("open");
-      }
-
-      function isApplePlatform() {
-        return /Mac|iPhone|iPad|iPod/i.test(navigator.userAgent);
-      }
-
-      function initSubmitShortcutHint() {
-        const modKey = $("submitModKey");
-        if (modKey) modKey.textContent = isApplePlatform() ? "⌘" : "Ctrl";
       }
 
       function historyMatchesState(request, state) {
@@ -3819,13 +3869,6 @@
         resolve();
       });
 
-      document.addEventListener("keydown", (e) => {
-        if ((e.metaKey || e.ctrlKey) && e.key === "Enter") {
-          e.preventDefault();
-          resolve();
-        }
-      });
-
       function openJsonModal() {
         if (!lastResult) return;
         highlightCode(
@@ -3897,7 +3940,6 @@
       });
 
       bindFormSync();
-      initSubmitShortcutHint();
       renderHistoryList();
       handleUrlNavigation();
 
