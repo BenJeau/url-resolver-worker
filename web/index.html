@@ -2824,6 +2824,10 @@
         border-bottom: 1px solid var(--divider);
       }
 
+      .result-content .section-heading-row .section-heading {
+        border-bottom: none;
+      }
+
       .result-content .section-count {
         background: var(--surface-2);
         border: 1px solid var(--border);
@@ -2942,7 +2946,7 @@
             </div>
           </form>
         </div>
-        <div class="request-curl-footer is-open" id="curlSection">
+        <div class="request-curl-footer" id="curlSection">
           <div class="request-section-header">
             <button type="button" class="request-section-toggle" id="curlToggle">
               <span class="request-section-title">cURL <span class="request-section-note">request locally</span></span>
@@ -3299,14 +3303,6 @@
           });
       }
 
-      function syncConfigOpen() {
-        const endpoint =
-          $("endpointInput").value.replace(/\/+$/, "") || DEFAULT_ENDPOINT;
-        if (endpoint !== DEFAULT_ENDPOINT || $("methodSelect").value !== "POST") {
-          $("formConfig").classList.add("is-open");
-        }
-      }
-
       function applyUrlToForm() {
         syncingFromUrl = true;
         const params = new URLSearchParams(window.location.search);
@@ -3352,7 +3348,6 @@
         }
 
         renderUaOrder();
-        syncConfigOpen();
         updateCurlDisplay();
         syncingFromUrl = false;
       }
@@ -4120,7 +4115,6 @@
         $("stopOnCrossDomain").checked = entry.request.stopOnCrossDomain ?? true;
         $("extractResponseBody").checked = entry.request.extractResponseBody;
         $("debugFlag").checked = entry.request.debug;
-        syncConfigOpen();
         renderResult(entry.response, entry.httpStatus);
         renderHistoryList();
         syncFormToUrl(false);
@@ -4273,10 +4267,7 @@
 
       function bindFormSync() {
         const sync = () => syncFormToUrl();
-        $("endpointInput").addEventListener("input", () => {
-          syncConfigOpen();
-          sync();
-        });
+        $("endpointInput").addEventListener("input", sync);
         $("urlInput").addEventListener("input", sync);
         $("urlInput").addEventListener("keydown", (e) => {
           if (e.key !== "Enter") return;
@@ -4289,7 +4280,6 @@
           if (!pill) return;
           e.preventDefault();
           setMethod(pill.dataset.method);
-          syncConfigOpen();
           sync();
         });
         $("methodPills").addEventListener("click", (e) => {
