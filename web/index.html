@@ -4954,15 +4954,18 @@
           return '<p style="color:var(--muted);font-size:0.8125rem">No hops recorded.</p>';
         }
 
+        const lastIndex = hops.length - 1;
+
         return `<div class="hops-list">${hops
           .map((hop, i) => {
             const isExtraction = hop.type === "extraction";
+            const isOpen = i === 0 || i === lastIndex;
             const summary = renderHopSummaryHtml(hop, isExtraction);
             const uaTags = renderHopUaTagsHtml(hop);
             const meta = renderHopMetaHtml(hop, isExtraction);
             return `
-            <div class="hop-row${isExtraction ? " is-extraction" : ""}">
-              <div class="hop-header" data-hop="${i}" aria-expanded="false">
+            <div class="hop-row${isExtraction ? " is-extraction" : ""}${isOpen ? " is-open" : ""}">
+              <div class="hop-header" data-hop="${i}" aria-expanded="${isOpen ? "true" : "false"}">
                 <span class="hop-index">${i + 1}</span>
                 <span class="hop-type ${isExtraction ? "extraction" : ""}">${hop.type}</span>
                 ${summary}
@@ -4972,7 +4975,7 @@
                   <path d="M4 6l4 4 4-4"/>
                 </svg>
               </div>
-              <div class="hop-body" id="hop-body-${i}">
+              <div class="hop-body${isOpen ? " open" : ""}" id="hop-body-${i}">
                 <div class="hop-body-inner">
                   ${renderHopDetailHtml(hop)}
                 </div>
