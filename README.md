@@ -39,7 +39,7 @@ Query parameters (all optional except `url` on GET):
 | Parameter               | Default  | Description                                                                                                                                                                                                  |
 | ----------------------- | -------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
 | `url`                   | —        | Target URL to resolve. Required for GET; use POST body for POST. Scheme-less values get `https://` prepended.                                                                                                |
-| `user-agent`            | _(none)_ | Comma-separated ordered UA chain. Values: `ios`, `android`, `mac`, `windows`, `none` (case-insensitive). One random string per type is selected and reused across hops. `none` sends no `User-Agent` header. |
+| `user-agent`            | _(none)_ | Comma-separated ordered UA chain. Values: `ios`, `android`, `macos`, `windows`, `none` (case-insensitive). One random string per type is selected and reused across hops. `none` sends no `User-Agent` header. |
 | `enforce-http-scheme`   | `true`   | When `true`, UA retries continue until `Location` resolves to `http`/`https`. Set `false` to allow any scheme.                                                                                               |
 | `stop-on-cross-domain`  | `true`   | When `true`, stop at cross-domain redirects outside the built-in shortener / `CONTINUE_HOP_DOMAINS` set. Set `false` to follow redirects to any host until another stop condition.                           |
 | `extract-response-body` | `false`  | Set `true` to include raw response body text in each `type=resolve` hop under `response.body`.                                                                                                               |
@@ -143,7 +143,7 @@ Example shape:
 - Maximum hops: configurable via `MAX_HOPS` (default `10`)
 - Per-hop upstream timeout: configurable via `UPSTREAM_TIMEOUT_MS` (default `8000`)
 - Method used for hop fetches: `GET`
-- Optional upstream user agent pool/chain via `?user-agent=<type>` or `?user-agent=<type1,type2,...>` where type is one of `ios`, `android`, `mac`, `windows`, `none`
+- Optional upstream user agent pool/chain via `?user-agent=<type>` or `?user-agent=<type1,type2,...>` where type is one of `ios`, `android`, `macos`, `windows`, `none`
 - User-agent pools are pre-generated into `src/user-agent-pools.json` from Microlink's `user` list (`https://microlink.io/user-agents.json`)
 - URL shortener continue domains are pre-generated into `src/url-shortener-domains.json` from HaGeZi's list (`https://raw.githubusercontent.com/hagezi/dns-blocklists/refs/heads/main/wildcard/urlshortener-onlydomains.txt`)
 - Worker egress IP lookup is only executed when `?debug=true`; otherwise `worker.ip` is `null`.
@@ -183,7 +183,7 @@ Before hop resolution starts, known wrapper URLs are unwrapped recursively (up t
 - `redirects_followed` is always less than or equal to `hops.length`.
 - `timing_ms`: total resolver duration.
 - `embedded_url_rule`: ID of the embedded wrapper rule used to derive the final destination, or `null` if none matched.
-- `user_agent`: object for the last successful user-agent attempt, containing `type` (`ios`, `android`, `mac`, `windows`, `none`) and header `value` (`string` for platform pools, `null` for `none`); `null` when no user-agent parameter was valid/provided.
+- `user_agent`: object for the last successful user-agent attempt, containing `type` (`ios`, `android`, `macos`, `windows`, `none`) and header `value` (`string` for platform pools, `null` for `none`); `null` when no user-agent parameter was valid/provided.
 - `worker.ip`: resolved only when `debug=true`; otherwise `null`.
 
 ## Hop queue (`hops`) and `stop_reason`
