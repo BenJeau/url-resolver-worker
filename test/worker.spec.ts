@@ -176,11 +176,23 @@ describe("getCorsHeaders", () => {
 
 describe("url-resolver worker", () => {
   it("returns 400 when url input is missing", async () => {
-    const response = await SELF.fetch("https://resolver.test/");
+    const response = await SELF.fetch("https://resolver.test/", {
+      method: "POST",
+      body: "",
+    });
     const payload = await response.json<{ error: string }>();
 
     expect(response.status).toBe(400);
     expect(payload.error).toContain("Provide a valid URL");
+  });
+
+  it("serves the web UI at the root path", async () => {
+    const response = await SELF.fetch("https://resolver.test/", {
+      headers: { Accept: "text/html" },
+    });
+
+    expect(response.status).toBe(200);
+    expect(response.headers.get("content-type")).toContain("text/html");
   });
 
   describe("request method and input source", () => {
