@@ -2425,73 +2425,41 @@
         -webkit-backdrop-filter: blur(10px);
       }
 
-      .resolve-loading-card {
-        backdrop-filter: blur(16px);
-        -webkit-backdrop-filter: blur(16px);
-        background: color-mix(in srgb, var(--surface) 78%, transparent);
-        border: 1px solid var(--glass-edge);
-        border-radius: calc(var(--radius) * 2);
-        box-shadow:
-          var(--glass-inset),
-          0 20px 40px -18px color-mix(in srgb, var(--text) 18%, transparent);
-        max-width: 320px;
+      .resolve-loading-content {
+        align-items: center;
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+        max-width: 280px;
         opacity: 0;
-        padding: 24px 26px;
+        padding: 0 24px;
         position: relative;
-        text-align: left;
-        transform: scale(0.98) translateY(6px);
+        text-align: center;
+        transform: translateY(6px);
         transition:
           opacity 0.32s var(--ease-out) 0.04s,
           transform 0.32s var(--ease-out) 0.04s;
-        width: calc(100% - 48px);
         z-index: 1;
       }
 
-      .resolve-loading.open .resolve-loading-card {
+      .resolve-loading.open .resolve-loading-content {
         opacity: 1;
-        transform: scale(1) translateY(0);
+        transform: translateY(0);
       }
 
-      .resolve-loading-skeleton {
-        display: flex;
-        flex-direction: column;
-        gap: 8px;
-        margin-bottom: 16px;
+      .resolve-loading-spinner {
+        animation: resolve-spin 0.75s linear infinite;
+        border: 2px solid var(--border);
+        border-radius: 50%;
+        border-top-color: var(--accent);
+        flex-shrink: 0;
+        height: 24px;
+        width: 24px;
       }
 
-      .skeleton-line {
-        animation: skeleton-shimmer 1.4s ease-in-out infinite;
-        background: linear-gradient(
-          90deg,
-          var(--surface-2) 0%,
-          color-mix(in srgb, var(--accent) 12%, var(--surface-2)) 50%,
-          var(--surface-2) 100%
-        );
-        background-size: 200% 100%;
-        border-radius: var(--radius);
-        height: 10px;
-      }
-
-      .skeleton-line-lg {
-        height: 14px;
-        width: 92%;
-      }
-
-      .skeleton-line-md {
-        width: 72%;
-      }
-
-      .skeleton-line-sm {
-        width: 48%;
-      }
-
-      @keyframes skeleton-shimmer {
-        0% {
-          background-position: 100% 0;
-        }
-
-        100% {
-          background-position: -100% 0;
+      @keyframes resolve-spin {
+        to {
+          transform: rotate(360deg);
         }
       }
 
@@ -2508,7 +2476,7 @@
         color: var(--muted);
         font-size: 0.8125rem;
         line-height: 1.45;
-        margin: 8px 0 0;
+        margin: 0;
         min-height: 2.9em;
         transition: opacity 0.18s ease;
       }
@@ -2523,14 +2491,15 @@
         }
 
         .resolve-loading,
-        .resolve-loading-card,
+        .resolve-loading-content,
         .resolve-loading-status {
           transition: none;
         }
 
-        .skeleton-line {
+        .resolve-loading-spinner {
           animation: none;
-          background: var(--surface-2);
+          border-top-color: var(--accent);
+          opacity: 0.85;
         }
       }
 
@@ -3019,12 +2988,8 @@
       <section class="panel panel-result is-empty" id="resultPanelSection">
         <div class="resolve-loading" id="resolveLoading" hidden aria-live="polite" aria-busy="false">
           <div class="resolve-loading-backdrop" aria-hidden="true"></div>
-          <div class="resolve-loading-card">
-            <div class="resolve-loading-skeleton" aria-hidden="true">
-              <div class="skeleton-line skeleton-line-lg"></div>
-              <div class="skeleton-line skeleton-line-md"></div>
-              <div class="skeleton-line skeleton-line-sm"></div>
-            </div>
+          <div class="resolve-loading-content">
+            <div class="resolve-loading-spinner" aria-hidden="true"></div>
             <p class="resolve-loading-title">Resolving URL</p>
             <p class="resolve-loading-status" id="resolveLoadingStatus">
               Sending URL to the Cloudflare Worker…
