@@ -336,6 +336,30 @@
         position: relative;
       }
 
+      .panel-result:not(.is-empty) {
+        background:
+          linear-gradient(
+            180deg,
+            transparent 0%,
+            var(--result-bg) min(360px, 42vh)
+          ),
+          linear-gradient(
+            90deg,
+            var(--accent-dim) 0%,
+            var(--dest-rule-mid) 35%,
+            transparent 100%
+          ),
+          linear-gradient(180deg, var(--result-glow) 0%, transparent 120px),
+          repeating-linear-gradient(
+            0deg,
+            transparent,
+            transparent 23px,
+            var(--grid-line) 23px,
+            var(--grid-line) 24px
+          ),
+          var(--result-bg);
+      }
+
       .panel-result.is-resolving {
         overflow: hidden;
       }
@@ -469,7 +493,7 @@
         grid-template-rows: 1fr;
       }
 
-      .form-config.is-open .collapse-chevron,
+      .form-actions.is-open .form-config-toggle .collapse-chevron,
       .request-curl-footer.is-open .collapse-chevron {
         transform: rotate(180deg);
       }
@@ -799,30 +823,32 @@
         color: var(--accent);
       }
 
-      .form-config {
-        border-top: 1px solid var(--divider-subtle);
-        margin-top: 2px;
-        padding-top: 12px;
+      .form-actions {
+        display: flex;
+        flex-direction: column;
+        gap: 0;
+        margin-top: 4px;
+      }
+
+      .form-actions-row {
+        align-items: stretch;
+        display: flex;
+        gap: 8px;
+      }
+
+      .form-actions-row .btn-primary {
+        flex: 1;
       }
 
       .form-config-toggle {
-        align-items: center;
-        background: none;
-        border: none;
-        color: var(--muted);
-        cursor: pointer;
-        display: flex;
-        font-size: 0.75rem;
-        font-weight: 600;
-        justify-content: space-between;
-        letter-spacing: 0.06em;
-        padding: 0;
-        text-transform: uppercase;
-        width: 100%;
+        flex-shrink: 0;
+        white-space: nowrap;
       }
 
-      .form-config-toggle:hover {
-        color: var(--text);
+      .form-config-toggle .collapse-chevron {
+        flex-shrink: 0;
+        height: 14px;
+        width: 14px;
       }
 
       .form-config-body {
@@ -832,7 +858,7 @@
         transition: grid-template-rows 0.22s ease;
       }
 
-      .form-config.is-open .form-config-body {
+      .form-actions.is-open .form-config-body {
         grid-template-rows: 1fr;
         padding-top: 12px;
       }
@@ -1042,13 +1068,6 @@
         color: var(--accent) !important;
       }
 
-      .form-actions {
-        display: flex;
-        flex-direction: column;
-        gap: 8px;
-        margin-top: 4px;
-      }
-
       .result-empty {
         align-items: center;
         color: var(--muted);
@@ -1085,22 +1104,6 @@
       .destination-display {
         margin-bottom: 6px;
         padding: 4px 0 32px;
-        position: relative;
-      }
-
-      .destination-display::after {
-        background: linear-gradient(
-          90deg,
-          var(--accent) 0%,
-          var(--dest-rule-mid) 35%,
-          transparent 100%
-        );
-        bottom: 0;
-        content: "";
-        height: 2px;
-        left: 0;
-        position: absolute;
-        right: 0;
       }
 
       .destination-display .label {
@@ -1168,14 +1171,17 @@
           animation: none;
           display: none;
         }
+
+        .url-path-step,
+        .url-path-segment {
+          animation: none !important;
+        }
       }
 
       .stats-row {
-        border-bottom: 1px solid var(--border);
         display: grid;
         gap: 20px 16px;
         grid-template-columns: repeat(5, minmax(0, 1fr));
-        padding-bottom: 20px;
       }
 
       @media (max-width: 900px) {
@@ -1273,9 +1279,34 @@
       }
 
       .url-path-step {
+        animation: url-path-step-in 0.5s cubic-bezier(0.22, 1, 0.36, 1) both;
         display: grid;
         gap: 0 14px;
         grid-template-columns: 28px 1fr;
+      }
+
+      .url-path-step:nth-child(1) {
+        animation-delay: 0.05s;
+      }
+
+      .url-path-step:nth-child(2) {
+        animation-delay: 0.13s;
+      }
+
+      .url-path-step:nth-child(3) {
+        animation-delay: 0.21s;
+      }
+
+      @keyframes url-path-step-in {
+        from {
+          opacity: 0;
+          transform: translateY(10px);
+        }
+
+        to {
+          opacity: 1;
+          transform: translateY(0);
+        }
       }
 
       .url-path-rail {
@@ -1311,6 +1342,7 @@
       }
 
       .url-path-segment {
+        animation: url-path-segment-in 0.45s cubic-bezier(0.22, 1, 0.36, 1) both;
         background: linear-gradient(
           180deg,
           var(--accent) 0%,
@@ -1319,7 +1351,28 @@
         flex: 1;
         margin: 5px 0;
         min-height: 28px;
+        transform-origin: top center;
         width: 2px;
+      }
+
+      .url-path-step:nth-child(1) .url-path-segment {
+        animation-delay: 0.1s;
+      }
+
+      .url-path-step:nth-child(2) .url-path-segment {
+        animation-delay: 0.18s;
+      }
+
+      @keyframes url-path-segment-in {
+        from {
+          opacity: 0;
+          transform: scaleY(0);
+        }
+
+        to {
+          opacity: 1;
+          transform: scaleY(1);
+        }
       }
 
       .url-path-step.is-terminal .url-path-segment {
@@ -1429,6 +1482,38 @@
         margin-top: 7px;
         overflow-wrap: anywhere;
         word-break: break-all;
+      }
+
+      .url-path-pair {
+        display: grid;
+        gap: 10px 18px;
+        grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+        margin-top: 7px;
+      }
+
+      @media (max-width: 720px) {
+        .url-path-pair {
+          grid-template-columns: 1fr;
+        }
+      }
+
+      .url-path-cell {
+        display: flex;
+        flex-direction: column;
+        gap: 5px;
+        min-width: 0;
+      }
+
+      .url-path-cell .url-path-url {
+        margin-top: 0;
+      }
+
+      .url-path-subkey {
+        color: var(--muted);
+        font-size: 0.5625rem;
+        font-weight: 600;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
       }
 
       .url-path-hint {
@@ -2606,13 +2691,22 @@
               </label>
             </div>
 
-            <div class="form-config" id="formConfig">
-              <button type="button" class="form-config-toggle" id="configToggle">
-                <span>Extra config</span>
-                <svg class="collapse-chevron" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                  <path d="M4 6l4 4 4-4"/>
-                </svg>
-              </button>
+            <div class="form-actions" id="formConfig">
+              <div class="form-actions-row">
+                <button type="button" class="btn form-config-toggle" id="configToggle">
+                  <span>Extra config</span>
+                  <svg class="collapse-chevron" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                    <path d="M4 6l4 4 4-4"/>
+                  </svg>
+                </button>
+                <button type="submit" class="btn btn-primary" id="resolveBtn">
+                  <svg class="btn-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                    <path d="M3 8h10"/>
+                    <path d="M9 4l4 4-4 4"/>
+                  </svg>
+                  <span class="btn-label">Resolve</span>
+                </button>
+              </div>
               <div class="form-config-body" id="configBody">
                 <div class="form-config-body-inner">
                   <label>
@@ -2637,16 +2731,6 @@
                   </label>
                 </div>
               </div>
-            </div>
-
-            <div class="form-actions">
-              <button type="submit" class="btn btn-primary" id="resolveBtn">
-                <svg class="btn-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                  <path d="M3 8h10"/>
-                  <path d="M9 4l4 4-4 4"/>
-                </svg>
-                <span class="btn-label">Resolve</span>
-              </button>
             </div>
           </form>
         </div>
@@ -3360,9 +3444,21 @@
       }
 
       function renderUrlPathHtml(urls) {
+        const input = urls?.input;
+        const normalized = urls?.normalized;
+        const showInputPair =
+          input != null &&
+          normalized != null &&
+          String(input) !== String(normalized);
+
         const steps = [
-          { label: "Input", url: urls?.input },
-          { label: "Normalized", url: urls?.normalized },
+          {
+            label: "Input",
+            combined: true,
+            input,
+            normalized,
+            showInputPair,
+          },
           {
             label: "Raw destination",
             url: urls?.raw_destination,
@@ -3371,11 +3467,31 @@
           {
             label: "Final destination",
             url: urls?.destination,
-            explainId: "final_destination",
             terminal: true,
             destination: true,
+            explainId: "final_destination",
           },
         ];
+
+        function renderStepContent(step) {
+          if (step.combined && step.showInputPair) {
+            return `
+                  <div class="url-path-pair">
+                    <div class="url-path-cell">
+                      <span class="url-path-subkey">As typed</span>
+                      <div class="url-path-url break-url">${escHtml(step.input ?? "—")}</div>
+                    </div>
+                    <div class="url-path-cell">
+                      <span class="url-path-subkey">Requested</span>
+                      <div class="url-path-url break-url">${escHtml(step.normalized ?? "—")}</div>
+                    </div>
+                  </div>`;
+          }
+          if (step.combined) {
+            return `<div class="url-path-url break-url">${escHtml(step.normalized ?? step.input ?? "—")}</div>`;
+          }
+          return `<div class="url-path-url break-url">${escHtml(step.url ?? "—")}</div>`;
+        }
 
         return `
           <div class="url-path">
@@ -3393,7 +3509,7 @@
                       ? explainable("url_trail", step.explainId, step.label)
                       : escHtml(step.label)
                   }</div>
-                  <div class="url-path-url break-url">${escHtml(step.url ?? "—")}</div>
+                  ${renderStepContent(step)}
                 </div>
               </div>`,
               )
@@ -3549,7 +3665,7 @@
             <div class="stat-item">
               <div class="key">Redirects followed</div>
               <div class="val">${redirects}</div>
-              <div class="hint">Same-host redirects accepted before stopping</div>
+              <div class="hint">Inter-hop cross-domain redirects</div>
             </div>
             <div class="stat-item">
               <div class="key">Stop reason</div>
@@ -3608,7 +3724,6 @@
           <div class="destination-display">
             <div class="label">Final destination</div>
             <p class="dest-url break-url"><span class="dest-text">${escHtml(dest)}</span></p>
-            <div class="field-hint">After redirect following and embedded URL extraction</div>
           </div>
           ${renderSummaryHtml(data, httpStatus)}
           <div class="section-heading-row">
