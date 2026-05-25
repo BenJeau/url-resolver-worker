@@ -1167,9 +1167,15 @@
       }
 
       .panel-result .panel-body {
+        align-items: center;
         display: flex;
         flex-direction: column;
-        padding: 24px clamp(18px, 5vw, 72px) 36px clamp(28px, 8vw, 96px);
+        padding: 24px clamp(18px, 4vw, 48px) 36px;
+      }
+
+      .panel-result .panel-body > * {
+        max-width: min(1280px, 100%);
+        width: 100%;
       }
 
       @media (max-width: 640px) {
@@ -1553,8 +1559,7 @@
         gap: 4px;
       }
 
-      .ua-tag,
-      .ua-attempt-type {
+      .ua-tag {
         border-radius: var(--radius);
         flex-shrink: 0;
         font-family: var(--mono);
@@ -1566,35 +1571,30 @@
       }
 
       .ua-tag.ua-ios,
-      .ua-attempt-type.ua-ios,
       .ua-chip.ua-ios {
         background: #007aff18;
         color: #007aff;
       }
 
       .ua-tag.ua-android,
-      .ua-attempt-type.ua-android,
       .ua-chip.ua-android {
         background: #3ddc8418;
         color: #1a8f4c;
       }
 
       .ua-tag.ua-macos,
-      .ua-attempt-type.ua-macos,
       .ua-chip.ua-macos {
         background: #8e8e9318;
         color: #636366;
       }
 
       .ua-tag.ua-windows,
-      .ua-attempt-type.ua-windows,
       .ua-chip.ua-windows {
         background: #0078d418;
         color: #0078d4;
       }
 
       .ua-tag.ua-none,
-      .ua-attempt-type.ua-none,
       .ua-chip.ua-none {
         background: var(--surface-2);
         color: var(--muted);
@@ -1602,28 +1602,24 @@
 
       @media (prefers-color-scheme: dark) {
         .ua-tag.ua-ios,
-        .ua-attempt-type.ua-ios,
         .ua-chip.ua-ios {
           background: #0a84ff28;
           color: #64b5ff;
         }
 
         .ua-tag.ua-android,
-        .ua-attempt-type.ua-android,
         .ua-chip.ua-android {
           background: #3ddc8428;
           color: #6ee7a0;
         }
 
         .ua-tag.ua-macos,
-        .ua-attempt-type.ua-macos,
         .ua-chip.ua-macos {
           background: #98989d28;
           color: #c7c7cc;
         }
 
         .ua-tag.ua-windows,
-        .ua-attempt-type.ua-windows,
         .ua-chip.ua-windows {
           background: #0078d428;
           color: #6cb4f5;
@@ -1709,7 +1705,6 @@
         font-size: 0.875rem;
         gap: 10px;
         justify-content: center;
-        max-width: 28rem;
         min-height: 16rem;
         padding-left: clamp(0px, 2vw, 24px);
         text-align: left;
@@ -1898,6 +1893,7 @@
         display: flex;
         flex-direction: column;
         gap: 10px;
+        margin-top: 20px;
       }
 
       .meta-section-title {
@@ -1946,7 +1942,6 @@
       .url-path {
         display: flex;
         flex-direction: column;
-        margin-top: 6px;
       }
 
       .url-path-step {
@@ -2436,33 +2431,311 @@
         text-transform: uppercase;
       }
 
-      .ua-attempt {
-        border-left: 2px solid var(--divider);
+      .hop-response-body-head-row {
+        align-items: center;
+        box-shadow: inset 0 1px 0 var(--divider-subtle);
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px 12px;
+        justify-content: space-between;
+        margin-top: 2px;
+        padding-top: 8px;
+      }
+
+      .hop-response-body-head-row .hop-detail-subhead {
+        box-shadow: none;
+        margin-top: 0;
+        padding-top: 0;
+      }
+
+      .hop-body-view-tabs {
+        background: var(--surface-2);
+        border: 1px solid var(--border);
+        border-radius: var(--radius);
+        display: inline-flex;
+        gap: 1px;
+        padding: 2px;
+      }
+
+      .hop-body-view-tab {
+        background: transparent;
+        border: none;
+        border-radius: calc(var(--radius) - 1px);
+        color: var(--muted);
+        cursor: pointer;
+        font-family: var(--mono);
+        font-size: 0.625rem;
+        font-weight: 600;
+        letter-spacing: 0.04em;
+        padding: 3px 10px;
+        text-transform: uppercase;
+        transition:
+          background 0.2s var(--ease-out),
+          color 0.2s var(--ease-out),
+          transform 0.15s var(--ease-out);
+      }
+
+      .hop-body-view-tab:hover {
+        color: var(--text);
+      }
+
+      .hop-body-view-tab:active {
+        transform: scale(0.98);
+      }
+
+      .hop-body-view-tab.active {
+        background: var(--accent-dim);
+        box-shadow: inset 0 0 0 1px var(--accent);
+        color: var(--accent);
+      }
+
+      .ua-attempts {
+        margin-left: 2px;
+      }
+
+      .ua-attempts-list {
         display: flex;
         flex-direction: column;
-        gap: 4px;
-        margin-left: 2px;
-        padding: 4px 0 4px 10px;
+      }
+
+      .ua-attempt-step {
+        --ua-accent: var(--accent);
+        --ua-accent-dim: var(--accent-dim);
+        animation: ua-step-reveal 0.42s var(--ease-out) both;
+        animation-delay: calc(var(--ua-index, 0) * 70ms);
+        display: grid;
+        gap: 0 10px;
+        grid-template-columns: 22px minmax(0, 1fr);
+      }
+
+      .ua-attempt-step.ua-ios {
+        --ua-accent: #007aff;
+        --ua-accent-dim: #007aff18;
+      }
+
+      .ua-attempt-step.ua-android {
+        --ua-accent: #1a8f4c;
+        --ua-accent-dim: #3ddc8418;
+      }
+
+      .ua-attempt-step.ua-macos {
+        --ua-accent: #636366;
+        --ua-accent-dim: #8e8e9318;
+      }
+
+      .ua-attempt-step.ua-windows {
+        --ua-accent: #0078d4;
+        --ua-accent-dim: #0078d418;
+      }
+
+      .ua-attempt-step.ua-none {
+        --ua-accent: var(--muted);
+        --ua-accent-dim: var(--surface-2);
+      }
+
+      @media (prefers-color-scheme: dark) {
+        .ua-attempt-step.ua-ios {
+          --ua-accent: #64b5ff;
+          --ua-accent-dim: #0a84ff28;
+        }
+
+        .ua-attempt-step.ua-android {
+          --ua-accent: #6ee7a0;
+          --ua-accent-dim: #3ddc8428;
+        }
+
+        .ua-attempt-step.ua-macos {
+          --ua-accent: #c7c7cc;
+          --ua-accent-dim: #98989d28;
+        }
+
+        .ua-attempt-step.ua-windows {
+          --ua-accent: #6cb4f5;
+          --ua-accent-dim: #0078d428;
+        }
+      }
+
+      .ua-attempt-rail {
+        align-items: center;
+        display: flex;
+        flex-direction: column;
+        min-height: 100%;
+        padding-top: 2px;
+      }
+
+      .ua-attempt-node {
+        align-items: center;
+        background: var(--ua-accent-dim);
+        border: 1px solid color-mix(in srgb, var(--ua-accent) 45%, var(--border));
+        border-radius: 50%;
+        box-shadow: inset 0 1px 0 var(--glass-edge);
+        color: var(--ua-accent);
+        display: flex;
+        flex-shrink: 0;
+        font-family: var(--mono);
+        font-size: 0.5rem;
+        font-variant-numeric: tabular-nums;
+        font-weight: 700;
+        height: 18px;
+        justify-content: center;
+        transition:
+          background 0.28s var(--ease-out),
+          border-color 0.28s var(--ease-out),
+          box-shadow 0.28s var(--ease-out);
+        width: 18px;
+        z-index: 1;
+      }
+
+      .ua-attempt-segment {
+        background: linear-gradient(
+          180deg,
+          color-mix(in srgb, var(--ua-accent) 55%, var(--border)) 0%,
+          var(--border) 88%
+        );
+        flex: 1;
+        margin: 4px 0;
+        min-height: 14px;
+        width: 1.5px;
+      }
+
+      .ua-attempt-step.is-terminal .ua-attempt-segment {
+        display: none;
+      }
+
+      .ua-attempt-step.is-terminal .ua-attempt-node {
+        animation: ua-node-selected 3s ease-in-out infinite;
+        background: var(--ua-accent);
+        border-color: color-mix(in srgb, var(--ua-accent) 70%, transparent);
+        box-shadow:
+          0 0 0 2px var(--ua-accent-dim),
+          inset 0 1px 0 color-mix(in srgb, #ffffff 18%, transparent);
+        color: var(--accent-on-primary);
+      }
+
+      .ua-attempt-panel {
+        margin-bottom: 12px;
+        min-width: 0;
+      }
+
+      .ua-attempt-step.is-terminal .ua-attempt-panel {
+        margin-bottom: 0;
       }
 
       .ua-attempt-head {
         align-items: center;
         display: flex;
-        gap: 8px;
+        flex-wrap: wrap;
+        gap: 6px;
       }
 
-      .ua-attempt-retry {
-        color: var(--muted);
+      .ua-attempt-type {
+        align-items: center;
+        color: var(--ua-accent);
+        display: inline-flex;
+        flex-wrap: wrap;
         font-family: var(--mono);
         font-size: 0.6875rem;
+        font-weight: 700;
+        gap: 6px;
+        letter-spacing: 0.02em;
+        text-transform: lowercase;
       }
 
-      .ua-attempt-val {
+      .ua-attempt-glyph {
+        flex-shrink: 0;
+        height: 12px;
+        opacity: 0.9;
+        width: 12px;
+      }
+
+      .ua-attempt-outcome {
+        border-radius: calc(var(--radius) - 1px);
+        font-family: var(--mono);
+        font-size: 0.5625rem;
+        font-weight: 600;
+        letter-spacing: 0.03em;
+        line-height: 1;
+        padding: 3px 7px;
+        text-transform: lowercase;
+      }
+
+      .ua-attempt-outcome.is-retry {
+        background: color-mix(in srgb, var(--muted) 10%, transparent);
+        color: var(--muted);
+      }
+
+      .ua-attempt-outcome.is-selected {
+        background: var(--ok-badge);
+        color: var(--accent);
+      }
+
+      .ua-attempt-string {
         color: var(--hint);
         font-family: var(--mono);
-        font-size: 0.6875rem;
-        line-height: 1.4;
+        font-size: 0.625rem;
+        line-height: 1.45;
+        margin-top: 4px;
         word-break: break-all;
+      }
+
+      .ua-attempt-string.is-empty {
+        color: var(--muted);
+        font-style: italic;
+      }
+
+      .ua-attempt-resolve {
+        align-items: baseline;
+        color: var(--accent);
+        display: flex;
+        font-family: var(--mono);
+        font-size: 0.625rem;
+        gap: 5px;
+        line-height: 1.4;
+        margin-top: 6px;
+        word-break: break-all;
+      }
+
+      .ua-attempt-resolve-label {
+        color: var(--muted);
+        flex-shrink: 0;
+        font-size: 0.5625rem;
+        font-weight: 600;
+        letter-spacing: 0.06em;
+        text-transform: uppercase;
+      }
+
+      @keyframes ua-step-reveal {
+        from {
+          opacity: 0;
+          transform: translateY(6px);
+        }
+
+        to {
+          opacity: 1;
+          transform: translateY(0);
+        }
+      }
+
+      @keyframes ua-node-selected {
+        0%,
+        100% {
+          box-shadow:
+            0 0 0 2px var(--ua-accent-dim),
+            inset 0 1px 0 color-mix(in srgb, #ffffff 18%, transparent);
+        }
+
+        50% {
+          box-shadow:
+            0 0 0 3px color-mix(in srgb, var(--ua-accent-dim) 65%, transparent),
+            inset 0 1px 0 color-mix(in srgb, #ffffff 18%, transparent);
+        }
+      }
+
+      @media (prefers-reduced-motion: reduce) {
+        .ua-attempt-step,
+        .ua-attempt-step.is-terminal .ua-attempt-node {
+          animation: none;
+        }
       }
 
       .headers-grid {
@@ -2490,16 +2763,35 @@
         word-break: break-all;
       }
 
-      .hop-body-text {
+      .hop-response-body {
         background: var(--curl-bg);
+        border: 1px solid var(--curl-border);
         border-left: 2px solid var(--divider);
+        border-radius: var(--radius);
+        margin-left: 2px;
+        overflow: hidden;
+      }
+
+      .hop-response-body-scroll {
+        max-height: 360px;
+        overflow: auto;
+      }
+
+      .hop-response-body-content {
+        background: none;
+        margin: 0;
+        min-width: 0;
+        overflow-x: auto;
+        padding: 8px 10px;
+      }
+
+      .hop-response-body-content code {
+        background: none;
+        display: block;
         font-family: var(--mono);
         font-size: 0.6875rem;
-        line-height: 1.45;
-        margin-left: 2px;
-        max-height: 200px;
-        overflow: auto;
-        padding: 8px 10px;
+        line-height: 1.5;
+        padding: 0;
         white-space: pre-wrap;
         word-break: break-all;
       }
@@ -3758,6 +4050,7 @@
     <script src="vendor/prism/prism.min.js"></script>
     <script src="vendor/prism/components/prism-json.min.js"></script>
     <script src="vendor/prism/components/prism-bash.min.js"></script>
+    <script src="vendor/prism/components/prism-markup.min.js"></script>
     <script>
       const STORAGE_KEY = "url-resolver-history";
       const SIDEBAR_COLLAPSED_KEY = "url-resolver-sidebar-collapsed";
@@ -3946,6 +4239,90 @@
         codeEl.textContent = code;
         preEl.appendChild(codeEl);
         if (window.Prism) Prism.highlightElement(codeEl);
+      }
+
+      function detectBodyLang(body, headers) {
+        const ct = String(
+          headers?.["content-type"] ?? headers?.["Content-Type"] ?? "",
+        ).toLowerCase();
+        if (ct.includes("json")) return "json";
+        if (ct.includes("html") || ct.includes("xml")) return "markup";
+        const trimmed = String(body).trimStart();
+        if (trimmed.startsWith("{") || trimmed.startsWith("[")) return "json";
+        if (
+          trimmed.startsWith("<!") ||
+          trimmed.startsWith("<html") ||
+          trimmed.startsWith("<?xml")
+        ) {
+          return "markup";
+        }
+        return "plain";
+      }
+
+      function extractBodyTextContent(body) {
+        const doc = new DOMParser().parseFromString(String(body), "text/html");
+        doc
+          .querySelectorAll("script, style, noscript, template")
+          .forEach((el) => el.remove());
+        return (doc.body?.textContent ?? "")
+          .replace(/\r\n/g, "\n")
+          .replace(/[ \t]+\n/g, "\n")
+          .replace(/\n{3,}/g, "\n\n")
+          .trim();
+      }
+
+      function renderResponseBodyHtml(body, headers) {
+        const text = String(body);
+        const lang = detectBodyLang(text, headers);
+        const codeClass =
+          lang === "plain" ? "" : ` class="language-${lang}"`;
+        const textContent =
+          lang === "markup" ? extractBodyTextContent(text) : text;
+        const showTextView = lang === "markup";
+
+        const headRow = showTextView
+          ? `
+            <div class="hop-response-body-head-row">
+              <div class="hop-detail-subhead">Response body</div>
+              <div class="hop-body-view-tabs" role="group" aria-label="Response body view">
+                <button type="button" class="hop-body-view-tab" data-view="source">Source</button>
+                <button type="button" class="hop-body-view-tab active" data-view="text">Text</button>
+              </div>
+            </div>`
+          : `<div class="hop-detail-subhead">Response body</div>`;
+
+        const textPre = showTextView
+          ? `
+                <pre class="hop-response-body-content" data-view="text" data-lang="plain"><code>${escHtml(textContent)}</code></pre>`
+          : "";
+
+        return `
+            ${headRow}
+            <div class="hop-response-body">
+              <div class="hop-response-body-scroll">
+                <pre class="hop-response-body-content" data-view="source" data-lang="${escHtml(lang)}" hidden><code${codeClass}>${escHtml(text)}</code></pre>${textPre}
+              </div>
+            </div>`;
+      }
+
+      function setHopBodyView(section, view) {
+        section.querySelectorAll(".hop-body-view-tab").forEach((tab) => {
+          tab.classList.toggle("active", tab.dataset.view === view);
+        });
+        section.querySelectorAll(".hop-response-body-content").forEach((pre) => {
+          pre.hidden = pre.dataset.view !== view;
+        });
+      }
+
+      function highlightHopResponseBodies(root) {
+        root.querySelectorAll(".hop-response-body-content").forEach((preEl) => {
+          const lang = preEl.dataset.lang;
+          if (!lang || lang === "plain") return;
+          const codeEl = preEl.querySelector("code");
+          if (!codeEl || !window.Prism) return;
+          codeEl.className = `language-${lang}`;
+          Prism.highlightElement(codeEl);
+        });
       }
 
       function updateCurlDisplay() {
@@ -4312,23 +4689,62 @@
           </div>`;
       }
 
+      function uaPlatformGlyph(type) {
+        const glyphs = {
+          none:
+            '<svg class="ua-attempt-glyph" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.25" stroke-linecap="round" aria-hidden="true"><circle cx="6" cy="6" r="4.25"/><path d="M3.5 8.5 8.5 3.5"/></svg>',
+          macos:
+            '<svg class="ua-attempt-glyph" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.25" stroke-linejoin="round" aria-hidden="true"><rect x="1.5" y="2.5" width="9" height="6" rx="1"/><path d="M4 9.5h4"/></svg>',
+          ios:
+            '<svg class="ua-attempt-glyph" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.25" stroke-linejoin="round" aria-hidden="true"><rect x="3.25" y="1.25" width="5.5" height="9.5" rx="1.5"/><path d="M5.25 2.75h1.5"/></svg>',
+          android:
+            '<svg class="ua-attempt-glyph" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.25" stroke-linecap="round" aria-hidden="true"><rect x="3.25" y="1.25" width="5.5" height="9.5" rx="1.5"/><path d="M4.5 3.25h3M4.5 8.75h3"/></svg>',
+          windows:
+            '<svg class="ua-attempt-glyph" viewBox="0 0 12 12" fill="currentColor" aria-hidden="true"><rect x="1.25" y="1.25" width="4.25" height="4.25" rx="0.5"/><rect x="6.5" y="1.25" width="4.25" height="4.25" rx="0.5"/><rect x="1.25" y="6.5" width="4.25" height="4.25" rx="0.5"/><rect x="6.5" y="6.5" width="4.25" height="4.25" rx="0.5"/></svg>',
+        };
+        return glyphs[type] ?? glyphs.none;
+      }
+
       function renderUaAttemptsHtml(attempts) {
         if (!attempts?.length) return "";
+        const steps = attempts
+          .map((ua, i) => {
+            const isTerminal = i === attempts.length - 1;
+            const type = escHtml(ua.type);
+            const outcome = ua.retry_reason
+              ? `<span class="ua-attempt-outcome is-retry">${explainable("ua_retry", ua.retry_reason, ua.retry_reason)}</span>`
+              : `<span class="ua-attempt-outcome is-selected">selected</span>`;
+            const uaString =
+              ua.value != null
+                ? `<div class="ua-attempt-string">${escHtml(ua.value)}</div>`
+                : `<div class="ua-attempt-string is-empty">no User-Agent header</div>`;
+            const resolved =
+              ua.resolved_url != null
+                ? `<div class="ua-attempt-resolve"><span class="ua-attempt-resolve-label">resolved</span><span class="break-url">${escHtml(ua.resolved_url)}</span></div>`
+                : "";
+
+            return `
+            <div class="ua-attempt-step ua-${type}${isTerminal ? " is-terminal" : ""}" style="--ua-index:${i}">
+              <div class="ua-attempt-rail">
+                <div class="ua-attempt-node">${i + 1}</div>
+                <div class="ua-attempt-segment"></div>
+              </div>
+              <div class="ua-attempt-panel">
+                <div class="ua-attempt-head">
+                  <span class="ua-attempt-type">${uaPlatformGlyph(ua.type)}${type}${outcome}</span>
+                </div>
+                ${uaString}
+                ${resolved}
+              </div>
+            </div>`;
+          })
+          .join("");
+
         return `
           <div class="hop-detail-subhead">User-Agent attempts</div>
-          ${attempts
-            .map(
-              (ua, i) => `
-            <div class="ua-attempt">
-              <div class="ua-attempt-head">
-                <span class="ua-attempt-type ua-${escHtml(ua.type)}">${i + 1}. ${escHtml(ua.type)}</span>
-                ${ua.retry_reason ? `<span class="ua-attempt-retry">${explainable("ua_retry", ua.retry_reason, ua.retry_reason)}</span>` : ""}
-              </div>
-              <div class="ua-attempt-val">${ua.value != null ? escHtml(ua.value) : "no User-Agent header"}</div>
-              ${ua.resolved_url != null ? `<div class="ua-attempt-val break-url">→ ${escHtml(ua.resolved_url)}</div>` : ""}
-            </div>`,
-            )
-            .join("")}`;
+          <div class="ua-attempts">
+            <div class="ua-attempts-list">${steps}</div>
+          </div>`;
       }
 
       function renderHopDetailHtml(hop) {
@@ -4366,9 +4782,7 @@
 
         const body = hop.response?.body;
         if (body != null && String(body).trim() !== "") {
-          html += `
-            <div class="hop-detail-subhead">Response body</div>
-            <pre class="hop-body-text">${escHtml(body)}</pre>`;
+          html += renderResponseBodyHtml(body, hop.response?.headers);
         }
 
         html += `</div>`;
@@ -4716,6 +5130,7 @@
           ${renderWorkerHtml(data.worker)}`;
 
         bindExplainables($("resultView"));
+        highlightHopResponseBodies($("resultView"));
         syncRailOverview();
       }
 
@@ -5191,6 +5606,12 @@
         const isOpen = body.classList.toggle("open");
         row.classList.toggle("is-open", isOpen);
         el.setAttribute("aria-expanded", isOpen ? "true" : "false");
+      });
+
+      bindPressDelegate("resultView", ".hop-body-view-tab", (_e, tab) => {
+        if (tab.classList.contains("active")) return;
+        const section = tab.closest(".hop-detail");
+        if (section) setHopBodyView(section, tab.dataset.view);
       });
 
       bindPressDelegate("resultView", ".explainable:not(.explainable-hover-only)", (e, el) => {
