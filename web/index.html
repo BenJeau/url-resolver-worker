@@ -38,7 +38,9 @@
         --overlay-active: #0000000c;
         --body-glow: #7c3aed08;
         --result-glow: #7c3aed06;
-        --grid-line: #00000006;
+        --grid-line: #00000028;
+        --grid-size: 16px;
+        --grid-dots: radial-gradient(circle, var(--grid-line) 1px, transparent 1px);
         --result-header-bg: #00000004;
         --request-stripe: #7c3aed40;
         --request-shadow: #7c3aed12;
@@ -123,7 +125,8 @@
           --overlay-active: #ffffff0c;
           --body-glow: #a78bfa06;
           --result-glow: #a78bfa05;
-          --grid-line: #ffffff03;
+          --grid-line: #ffffff1a;
+          --grid-dots: radial-gradient(circle, var(--grid-line) 1px, transparent 1px);
           --result-header-bg: #ffffff04;
           --request-stripe: #a78bfa30;
           --request-shadow: #a78bfa0a;
@@ -323,14 +326,9 @@
       .panel-result {
         background:
           linear-gradient(180deg, var(--result-glow) 0%, transparent 120px),
-          repeating-linear-gradient(
-            0deg,
-            transparent,
-            transparent 23px,
-            var(--grid-line) 23px,
-            var(--grid-line) 24px
-          ),
+          var(--grid-dots),
           var(--result-bg);
+        background-size: auto, var(--grid-size) var(--grid-size), auto;
         border-right: 1px solid var(--border);
         min-height: 0;
         position: relative;
@@ -350,14 +348,9 @@
             transparent 100%
           ),
           linear-gradient(180deg, var(--result-glow) 0%, transparent 120px),
-          repeating-linear-gradient(
-            0deg,
-            transparent,
-            transparent 23px,
-            var(--grid-line) 23px,
-            var(--grid-line) 24px
-          ),
+          var(--grid-dots),
           var(--result-bg);
+        background-size: auto, auto, auto, var(--grid-size) var(--grid-size), auto;
       }
 
       .panel-result.is-resolving {
