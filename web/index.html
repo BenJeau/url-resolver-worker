@@ -1293,10 +1293,6 @@
         animation-delay: 0.13s;
       }
 
-      .url-path-step:nth-child(3) {
-        animation-delay: 0.21s;
-      }
-
       @keyframes url-path-step-in {
         from {
           opacity: 0;
@@ -1445,6 +1441,14 @@
         font-weight: 600;
       }
 
+      .url-path-step.is-destination
+        .url-path-pair
+        .url-path-cell:first-child
+        .url-path-url {
+        color: var(--text);
+        font-weight: 400;
+      }
+
       .url-path-label {
         align-items: center;
         color: var(--accent);
@@ -1514,6 +1518,15 @@
         font-weight: 600;
         letter-spacing: 0.08em;
         text-transform: uppercase;
+      }
+
+      .url-path-subkey .explainable {
+        color: inherit;
+        font-family: inherit;
+        font-size: inherit;
+        font-weight: inherit;
+        letter-spacing: inherit;
+        text-transform: inherit;
       }
 
       .url-path-hint {
@@ -3451,6 +3464,31 @@
           normalized != null &&
           String(input) !== String(normalized);
 
+        const rawDest = urls?.raw_destination;
+        const finalDest = urls?.destination;
+        const showDestinationPair =
+          rawDest != null &&
+          finalDest != null &&
+          String(rawDest) !== String(finalDest);
+
+        const destinationStep = showDestinationPair
+          ? {
+              label: "Destination",
+              combinedDestination: true,
+              raw: rawDest,
+              final: finalDest,
+              showDestinationPair: true,
+              terminal: true,
+              destination: true,
+            }
+          : {
+              label: "Final destination",
+              url: finalDest ?? rawDest,
+              terminal: true,
+              destination: true,
+              explainId: "final_destination",
+            };
+
         const steps = [
           {
             label: "Input",
@@ -3459,18 +3497,7 @@
             normalized,
             showInputPair,
           },
-          {
-            label: "Raw destination",
-            url: urls?.raw_destination,
-            explainId: "raw_destination",
-          },
-          {
-            label: "Final destination",
-            url: urls?.destination,
-            terminal: true,
-            destination: true,
-            explainId: "final_destination",
-          },
+          destinationStep,
         ];
 
         function renderStepContent(step) {
@@ -3489,6 +3516,19 @@
           }
           if (step.combined) {
             return `<div class="url-path-url break-url">${escHtml(step.normalized ?? step.input ?? "—")}</div>`;
+          }
+          if (step.combinedDestination && step.showDestinationPair) {
+            return `
+                  <div class="url-path-pair">
+                    <div class="url-path-cell">
+                      <span class="url-path-subkey">${explainable("url_trail", "raw_destination", "Before extraction")}</span>
+                      <div class="url-path-url break-url">${escHtml(step.raw ?? "—")}</div>
+                    </div>
+                    <div class="url-path-cell">
+                      <span class="url-path-subkey">${explainable("url_trail", "final_destination", "Final")}</span>
+                      <div class="url-path-url break-url">${escHtml(step.final ?? "—")}</div>
+                    </div>
+                  </div>`;
           }
           return `<div class="url-path-url break-url">${escHtml(step.url ?? "—")}</div>`;
         }
