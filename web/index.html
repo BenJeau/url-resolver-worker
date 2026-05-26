@@ -1744,35 +1744,6 @@
         max-width: 36ch;
       }
 
-      .result-empty-eyebrow {
-        color: var(--accent);
-        font-family: var(--mono);
-        font-size: 0.625rem;
-        font-weight: 600;
-        letter-spacing: 0.12em;
-        margin: 0;
-        text-transform: uppercase;
-      }
-
-      .result-empty-mark {
-        align-items: center;
-        background: var(--accent-dim);
-        border: 1px solid var(--glass-edge);
-        border-radius: var(--radius);
-        box-shadow: var(--glass-inset);
-        color: var(--accent);
-        display: flex;
-        height: 40px;
-        justify-content: center;
-        margin-bottom: 2px;
-        width: 40px;
-      }
-
-      .result-empty-mark svg {
-        height: 18px;
-        width: 18px;
-      }
-
       .result-empty-title {
         color: var(--text);
         font-family: var(--display);
@@ -3975,13 +3946,6 @@
           <div class="result-empty" id="resultEmpty">
             <div class="result-empty-grid">
               <div class="result-empty-copy">
-                <div class="result-empty-mark" aria-hidden="true">
-                  <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
-                    <path d="M3 8h10"/>
-                    <path d="M9 4l4 4-4 4"/>
-                  </svg>
-                </div>
-                <p class="result-empty-eyebrow">Trace canvas</p>
                 <h2 class="result-empty-title">Awaiting a URL</h2>
                 <p class="result-empty-hint">Paste a short link or redirect URL in the panel, then press <kbd>Enter</kbd> to walk the full hop chain.</p>
                 <div class="result-empty-steps">
