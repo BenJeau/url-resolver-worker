@@ -1173,6 +1173,10 @@
         padding: 24px clamp(18px, 4vw, 48px) 36px;
       }
 
+      .panel-result.is-empty .panel-body {
+        justify-content: center;
+      }
+
       .panel-result .panel-body > * {
         max-width: min(1280px, 100%);
         width: 100%;
@@ -1697,17 +1701,51 @@
       }
 
       .result-empty {
-        align-items: flex-start;
+        align-items: stretch;
         color: var(--muted);
         display: flex;
         flex: 1;
-        flex-direction: column;
         font-size: 0.875rem;
-        gap: 10px;
         justify-content: center;
-        min-height: 16rem;
-        padding-left: clamp(0px, 2vw, 24px);
+        min-height: 18rem;
+        padding: clamp(8px, 2vw, 24px) 0;
         text-align: left;
+      }
+
+      .result-empty-grid {
+        align-items: center;
+        display: grid;
+        gap: 32px 48px;
+        grid-template-columns: minmax(0, 1.1fr) minmax(0, 0.9fr);
+        width: 100%;
+      }
+
+      @media (max-width: 768px) {
+        .result-empty-grid {
+          gap: 28px;
+          grid-template-columns: 1fr;
+        }
+
+        .result-empty-viz {
+          max-width: 280px;
+        }
+      }
+
+      .result-empty-copy {
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+        max-width: 36ch;
+      }
+
+      .result-empty-eyebrow {
+        color: var(--accent);
+        font-family: var(--mono);
+        font-size: 0.625rem;
+        font-weight: 600;
+        letter-spacing: 0.12em;
+        margin: 0;
+        text-transform: uppercase;
       }
 
       .result-empty-mark {
@@ -1720,7 +1758,7 @@
         display: flex;
         height: 40px;
         justify-content: center;
-        margin-bottom: 4px;
+        margin-bottom: 2px;
         width: 40px;
       }
 
@@ -1732,19 +1770,102 @@
       .result-empty-title {
         color: var(--text);
         font-family: var(--display);
-        font-size: 1.0625rem;
-        font-weight: 700;
-        letter-spacing: -0.02em;
-        line-height: 1.25;
+        font-size: clamp(1.375rem, 3vw, 1.75rem);
+        font-weight: 800;
+        letter-spacing: -0.03em;
+        line-height: 1.15;
         margin: 0;
       }
 
       .result-empty-hint {
         color: var(--muted);
         font-size: 0.875rem;
-        line-height: 1.55;
+        line-height: 1.6;
         margin: 0;
-        max-width: 32ch;
+        max-width: 34ch;
+      }
+
+      .result-empty-steps {
+        display: flex;
+        flex-direction: column;
+        gap: 6px;
+        margin-top: 6px;
+      }
+
+      .result-empty-step {
+        align-items: baseline;
+        color: var(--hint);
+        display: flex;
+        font-family: var(--mono);
+        font-size: 0.6875rem;
+        gap: 10px;
+        letter-spacing: 0.02em;
+      }
+
+      .result-empty-step-num {
+        color: var(--accent);
+        flex-shrink: 0;
+        font-weight: 700;
+        min-width: 1.1rem;
+      }
+
+      .result-empty-viz {
+        justify-self: end;
+        max-width: 320px;
+        opacity: 0.92;
+        width: 100%;
+      }
+
+      .trace-diagram {
+        display: block;
+        height: auto;
+        width: 100%;
+      }
+
+      .trace-path {
+        stroke: color-mix(in srgb, var(--accent) 55%, var(--border));
+        stroke-dasharray: 4 6;
+        stroke-linecap: round;
+        stroke-width: 1.5;
+      }
+
+      .trace-path-main {
+        animation: trace-flow 2.8s linear infinite;
+        stroke: var(--accent);
+        stroke-dasharray: 8 12;
+        stroke-width: 2;
+      }
+
+      .trace-node {
+        fill: var(--result-bg);
+        stroke: color-mix(in srgb, var(--accent) 50%, var(--border));
+        stroke-width: 1.5;
+      }
+
+      .trace-node-end {
+        animation: trace-end-pulse 2.8s ease-in-out infinite;
+        fill: var(--accent-dim);
+        stroke: var(--accent);
+        stroke-width: 2;
+        transform-box: fill-box;
+        transform-origin: center;
+      }
+
+      @keyframes trace-flow {
+        to {
+          stroke-dashoffset: -40;
+        }
+      }
+
+      @keyframes trace-end-pulse {
+        0%,
+        100% {
+          transform: scale(1);
+        }
+
+        50% {
+          transform: scale(1.12);
+        }
       }
 
       .result-empty kbd {
@@ -1807,7 +1928,7 @@
       }
 
       .destination-display .dest-url {
-        border-left: 3px solid var(--accent);
+        border-left: 3px solid var(--text);
         font-family: var(--mono);
         font-size: clamp(2rem, 5.5vw, 3rem);
         font-weight: 800;
@@ -1840,6 +1961,11 @@
         }
 
         .result-content.visible > * {
+          animation: none;
+        }
+
+        .trace-path-main,
+        .trace-node-end {
           animation: none;
         }
       }
@@ -3878,14 +4004,35 @@
             </button>
           </div>
           <div class="result-empty" id="resultEmpty">
-            <div class="result-empty-mark" aria-hidden="true">
-              <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
-                <path d="M3 8h10"/>
-                <path d="M9 4l4 4-4 4"/>
-              </svg>
+            <div class="result-empty-grid">
+              <div class="result-empty-copy">
+                <div class="result-empty-mark" aria-hidden="true">
+                  <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M3 8h10"/>
+                    <path d="M9 4l4 4-4 4"/>
+                  </svg>
+                </div>
+                <p class="result-empty-eyebrow">Trace canvas</p>
+                <h2 class="result-empty-title">Awaiting a URL</h2>
+                <p class="result-empty-hint">Paste a short link or redirect URL in the panel, then press <kbd>Enter</kbd> to walk the full hop chain.</p>
+                <div class="result-empty-steps">
+                  <span class="result-empty-step"><span class="result-empty-step-num">01</span>Submit URL and flags</span>
+                  <span class="result-empty-step"><span class="result-empty-step-num">02</span>Follow same-host redirects</span>
+                  <span class="result-empty-step"><span class="result-empty-step-num">03</span>Read destination and hops</span>
+                </div>
+              </div>
+              <div class="result-empty-viz" aria-hidden="true">
+                <svg class="trace-diagram" viewBox="0 0 320 200" fill="none" xmlns="http://www.w3.org/2000/svg">
+                  <path class="trace-path" d="M48 112 L108 72"/>
+                  <path class="trace-path" d="M132 72 L188 128"/>
+                  <path class="trace-path-main" d="M212 128 L268 88"/>
+                  <circle class="trace-node" cx="40" cy="120" r="6"/>
+                  <circle class="trace-node" cx="120" cy="64" r="6"/>
+                  <circle class="trace-node" cx="200" cy="136" r="6"/>
+                  <circle class="trace-node trace-node-end" cx="280" cy="80" r="8"/>
+                </svg>
+              </div>
             </div>
-            <p class="result-empty-title">No resolution yet</p>
-            <p class="result-empty-hint">Paste a short link or redirect URL in the panel, then press <kbd>Enter</kbd> to trace the full chain.</p>
           </div>
           <div class="result-content" id="resultContent">
             <div id="resultView"></div>
