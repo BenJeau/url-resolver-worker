@@ -3101,6 +3101,27 @@
         color: var(--extraction-color);
       }
 
+      .hop-method {
+        border-radius: var(--radius);
+        flex-shrink: 0;
+        font-family: var(--mono);
+        font-size: 0.6875rem;
+        font-weight: 700;
+        letter-spacing: 0.04em;
+        line-height: 1.2;
+        padding: 2px 6px;
+      }
+
+      .hop-method-head {
+        background: #6366f118;
+        color: #4f46e5;
+      }
+
+      .hop-method-get {
+        background: #0891b218;
+        color: #0e7490;
+      }
+
       .hop-summary {
         color: var(--muted);
         flex: 1;
@@ -3196,6 +3217,16 @@
           background: #ef444432;
           color: #f87171;
         }
+
+        .hop-method-head {
+          background: #818cf828;
+          color: #a5b4fc;
+        }
+
+        .hop-method-get {
+          background: #22d3ee28;
+          color: #67e8f9;
+        }
       }
 
       .hop-meta-sep {
@@ -3237,6 +3268,23 @@
 
       .history-item .break-url {
         cursor: pointer !important;
+      }
+
+      .btn-delete-history {
+        background: var(--danger-bg);
+        border-color: var(--danger);
+        color: var(--danger);
+        font-weight: 600;
+      }
+
+      .btn-delete-history:hover:not(:disabled) {
+        background: var(--danger);
+        border-color: var(--danger);
+        color: #ffffff;
+      }
+
+      .btn-delete-history:active:not(:disabled) {
+        transform: scale(0.98);
       }
 
       .history-item:last-child {
@@ -3926,6 +3974,14 @@
         </div>
         <div class="panel-body" id="resultPanel">
           <div class="result-toolbar">
+            <button type="button" class="btn btn-sm btn-delete-history" id="deleteHistoryBtn" hidden title="Remove selected history entry">
+              <svg class="btn-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.25" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <path d="M2 4h12"/>
+                <path d="M5 4V3.5A.5.5 0 0 1 5.5 3h5a.5.5 0 0 1 .5.5V4"/>
+                <path d="M6 7v4.5M10 7v4.5"/>
+                <path d="M3.5 4l.75 8.5A1 1 0 0 0 5.25 13.5h5.5a1 1 0 0 0 1-1.05L12.5 4"/>
+              </svg>
+            </button>
             <button type="button" class="btn btn-sm btn-accent" id="copyDestBtn" disabled>
               <svg class="btn-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.25" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
                 <rect x="5" y="5" width="9" height="9" rx="1"/>
@@ -4844,6 +4900,7 @@
             </div>`;
         }
 
+        const method = hop.request?.method;
         let html = `
           <div class="hop-detail">
             <div class="hop-detail-pair">
@@ -4851,6 +4908,12 @@
                 <span class="hop-detail-key">Request</span>
                 <span class="hop-detail-val break-url">${escHtml(hop.request?.url ?? "—")}</span>
               </div>
+              <div class="hop-detail-cell">
+                <span class="hop-detail-key">Method</span>
+                <span class="hop-detail-val">${method ? escHtml(method) : "—"}</span>
+              </div>
+            </div>
+            <div class="hop-detail-pair">
               <div class="hop-detail-cell">
                 <span class="hop-detail-key">Location</span>
                 <span class="hop-detail-val break-url">${escHtml(hop.next_url ?? "—")}</span>
@@ -4867,6 +4930,15 @@
 
         html += `</div>`;
         return html;
+      }
+
+      function renderHopMethodTagHtml(hop) {
+        if (hop.type !== "resolve") return "";
+        const method = hop.request?.method;
+        if (method !== "HEAD" && method !== "GET") return "";
+        const methodClass =
+          method === "HEAD" ? "hop-method-head" : "hop-method-get";
+        return `<span class="hop-method ${methodClass}" title="Upstream fetch method">${escHtml(method)}</span>`;
       }
 
       function renderHopUaTagsHtml(hop) {
@@ -5041,6 +5113,7 @@
             const isExtraction = hop.type === "extraction";
             const isOpen = i === lastIndex;
             const summary = renderHopSummaryHtml(hop, isExtraction);
+            const methodTag = renderHopMethodTagHtml(hop);
             const uaTags = renderHopUaTagsHtml(hop);
             const meta = renderHopMetaHtml(hop, isExtraction);
             return `
@@ -5048,6 +5121,7 @@
               <div class="hop-header" data-hop="${i}" aria-expanded="${isOpen ? "true" : "false"}">
                 <span class="hop-index">${i + 1}</span>
                 <span class="hop-type ${isExtraction ? "extraction" : ""}">${hop.type}</span>
+                ${methodTag}
                 ${summary}
                 ${uaTags}
                 ${meta}
@@ -5163,10 +5237,21 @@
         $("resultPanelSection").classList.toggle("is-empty", isEmpty);
       }
 
+      function syncHistoryDeleteBtn() {
+        const btn = $("deleteHistoryBtn");
+        if (!btn) return;
+        const hasActiveEntry =
+          activeHistoryId != null &&
+          resolveHistory.some((h) => h.id === activeHistoryId);
+        btn.hidden = !hasActiveEntry;
+        btn.disabled = !hasActiveEntry;
+      }
+
       function resetResultPanel() {
         lastResult = null;
         $("viewJsonBtn").disabled = true;
         $("copyDestBtn").disabled = true;
+        syncHistoryDeleteBtn();
         $("resultEmpty").style.display = "";
         $("resultContent").classList.remove("visible");
         document.querySelector(".result-toolbar")?.classList.remove("visible");
@@ -5183,6 +5268,7 @@
         const dest = data.urls?.destination ?? data.error ?? "—";
         const isError = !!data.error;
         $("copyDestBtn").disabled = isError || !data.urls?.destination;
+        syncHistoryDeleteBtn();
 
         $("resultEmpty").style.display = "none";
         $("resultContent").classList.add("visible");
@@ -5221,6 +5307,7 @@
         const countEl = $("historyCount");
         if (countEl) countEl.textContent = String(resolveHistory.length);
         syncRailOverview();
+        syncHistoryDeleteBtn();
 
         const list = $("historyList");
         if (resolveHistory.length === 0) {
@@ -5278,6 +5365,19 @@
         if (body) body.scrollTop = 0;
       }
 
+      function removeHistoryEntry(id) {
+        const wasActive = activeHistoryId === id;
+        resolveHistory = resolveHistory.filter((h) => h.id !== id);
+        saveResolveHistory();
+        if (wasActive) {
+          activeHistoryId = null;
+          resetResultPanel();
+          syncFormToUrl(false);
+        }
+        renderHistoryList();
+        syncHistoryDeleteBtn();
+      }
+
       function loadHistoryEntry(id) {
         const entry = resolveHistory.find((h) => h.id === id);
         if (!entry) return;
@@ -5294,6 +5394,7 @@
         $("debugFlag").checked = entry.request.debug;
         renderResult(entry.response, entry.httpStatus);
         renderHistoryList();
+        syncHistoryDeleteBtn();
         syncFormToUrl(false);
       }
 
@@ -5679,6 +5780,10 @@
         window.location.assign("./");
       });
 
+      bindPress("deleteHistoryBtn", () => {
+        if (activeHistoryId) removeHistoryEntry(activeHistoryId);
+      });
+
       bindPressDelegate("historyList", ".history-item", (_e, el) =>
         loadHistoryEntry(el.dataset.id),
       );
@@ -5717,6 +5822,7 @@
       syncRailOverview();
       bindExplainables($("resolverForm"));
       renderHistoryList();
+      syncHistoryDeleteBtn();
       handleUrlNavigation();
 
       window.addEventListener("popstate", handleUrlNavigation);
