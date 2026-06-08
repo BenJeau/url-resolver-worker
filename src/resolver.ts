@@ -10,6 +10,7 @@ import {
 import { WorkerInfo } from "./worker";
 
 type HeaderMap = Record<string, string>;
+type HopMethod = "HEAD" | "GET";
 
 type StopReason =
   | "non_redirect_status"
@@ -48,6 +49,7 @@ type ResolveHop = {
   type: "resolve";
   request: {
     url: string;
+    method: HopMethod;
     user_agents?: AttemptedUserAgent[];
   };
   next_url: string | null;
@@ -124,6 +126,10 @@ function isEquivalentDomain(originHost: string, nextHost: string): boolean {
   );
 }
 
+function shouldFallbackHeadToGet(response: Response): boolean {
+  return !response.headers.get("location");
+}
+
 function getUserAgentRetryReason(
   response: Response,
   currentUrl: URL,
@@ -171,16 +177,17 @@ function getUserAgentRetryReason(
   return null;
 }
 
-async function fetchWithTimeout(
+async function fetchHopWithTimeout(
   input: RequestInfo | URL,
   userAgent: string | null,
+  method: HopMethod,
 ): Promise<Response> {
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), env.UPSTREAM_TIMEOUT_MS);
 
   try {
     return await fetch(input, {
-      method: "GET",
+      method,
       redirect: "manual",
       headers: userAgent ? { "user-agent": userAgent } : undefined,
       signal: controller.signal,
@@ -188,6 +195,23 @@ async function fetchWithTimeout(
   } finally {
     clearTimeout(timer);
   }
+}
+
+async function fetchHopWithHeadGetFallback(
+  input: string,
+  userAgent: string | null,
+): Promise<{ response: Response; method: HopMethod }> {
+  try {
+    const headResponse = await fetchHopWithTimeout(input, userAgent, "HEAD");
+    if (!shouldFallbackHeadToGet(headResponse)) {
+      return { response: headResponse, method: "HEAD" };
+    }
+  } catch {
+    // HEAD failed or timed out; retry with GET.
+  }
+
+  const getResponse = await fetchHopWithTimeout(input, userAgent, "GET");
+  return { response: getResponse, method: "GET" };
 }
 
 export async function resolveUrl(
@@ -214,6 +238,7 @@ export async function resolveUrl(
       rule_id: hop.rule_id,
     });
   }
+
   let redirectsFollowed = 0;
   let status = 0;
   let userAgent: SelectedUserAgent | null = null;
@@ -222,6 +247,7 @@ export async function resolveUrl(
   for (let i = 0; i < env.MAX_HOPS; i += 1) {
     const hopStartedAt = performance.now();
     let response: Response | null = null;
+    let hopMethod: HopMethod = "GET";
     const attemptedUserAgents: AttemptedUserAgent[] = [];
 
     for (let attempt = 0; attempt < userAgentsToTry.length; attempt += 1) {
@@ -232,10 +258,12 @@ export async function resolveUrl(
       if (attemptedUserAgent) attemptedUserAgents.push(attemptedUserAgent);
 
       try {
-        const candidateResponse = await fetchWithTimeout(
+        const fetchResult = await fetchHopWithHeadGetFallback(
           current.toString(),
           candidateUserAgent?.value ?? null,
         );
+        hopMethod = fetchResult.method;
+        const candidateResponse = fetchResult.response;
         const retryDetails =
           attempt < userAgentsToTry.length - 1
             ? getUserAgentRetryReason(
@@ -277,6 +305,7 @@ export async function resolveUrl(
             type: "resolve",
             request: {
               url: current.toString(),
+              method: hopMethod,
               user_agents:
                 attemptedUserAgents.length > 0
                   ? attemptedUserAgents
@@ -314,6 +343,7 @@ export async function resolveUrl(
       type: "resolve",
       request: {
         url: current.toString(),
+        method: hopMethod,
         user_agents:
           attemptedUserAgents.length > 0 ? attemptedUserAgents : undefined,
       },
