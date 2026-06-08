@@ -343,6 +343,18 @@ Run in watch mode while developing:
 npm run test:watch
 ```
 
+### Live smoke checks (optional)
+
+Against a running worker (`npm run dev` or a deployed URL):
+
+```bash
+npm run smoke
+# or
+SMOKE_BASE_URL=https://<your-worker>.workers.dev npm run smoke
+```
+
+Smoke samples come from the research doc. Optional cases are marked skipped on failure so the script stays useful when third-party destinations drift.
+
 ## Generate User-Agent Pools
 
 To refresh the static user-agent pools JSON from Microlink:
