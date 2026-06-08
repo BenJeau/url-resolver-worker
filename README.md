@@ -36,14 +36,14 @@ curl "https://<your-worker>.workers.dev?url=bit.ly/abc123"
 
 Query parameters (all optional except `url` on GET):
 
-| Parameter               | Default  | Description                                                                                                                                                                                                  |
-| ----------------------- | -------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| `url`                   | —        | Target URL to resolve. Required for GET; use POST body for POST. Scheme-less values get `https://` prepended.                                                                                                |
+| Parameter               | Default  | Description                                                                                                                                                                                                    |
+| ----------------------- | -------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `url`                   | —        | Target URL to resolve. Required for GET; use POST body for POST. Scheme-less values get `https://` prepended.                                                                                                  |
 | `user-agent`            | _(none)_ | Comma-separated ordered UA chain. Values: `ios`, `android`, `macos`, `windows`, `none` (case-insensitive). One random string per type is selected and reused across hops. `none` sends no `User-Agent` header. |
-| `enforce-http-scheme`   | `true`   | When `true`, UA retries continue until `Location` resolves to `http`/`https`. Set `false` to allow any scheme.                                                                                               |
-| `stop-on-cross-domain`  | `true`   | When `true`, stop at cross-domain redirects outside the built-in shortener / `CONTINUE_HOP_DOMAINS` set. Set `false` to follow redirects to any host until another stop condition.                           |
-| `extract-response-body` | `false`  | Set `true` to include raw response body text in each `type=resolve` hop under `response.body`.                                                                                                               |
-| `debug`                 | `false`  | Set `true` to resolve and include worker egress IP in `worker.ip`.                                                                                                                                           |
+| `enforce-http-scheme`   | `true`   | When `true`, UA retries continue until `Location` resolves to `http`/`https`. Set `false` to allow any scheme.                                                                                                 |
+| `stop-on-cross-domain`  | `true`   | When `true`, stop at cross-domain redirects outside the built-in shortener / `CONTINUE_HOP_DOMAINS` set. Set `false` to follow redirects to any host until another stop condition.                             |
+| `extract-response-body` | `false`  | Set `true` to include raw response body text in each `type=resolve` hop under `response.body`.                                                                                                                 |
+| `debug`                 | `false`  | Set `true` to resolve and include worker egress IP in `worker.ip`.                                                                                                                                             |
 
 Examples:
 
@@ -142,7 +142,7 @@ Example shape:
 
 - Maximum hops: configurable via `MAX_HOPS` (default `10`)
 - Per-hop upstream timeout: configurable via `UPSTREAM_TIMEOUT_MS` (default `8000`)
-- Method used for hop fetches: `GET`
+- Method used for hop fetches: `HEAD` first, falling back to `GET` when `HEAD` has no `Location` header (or fails/times out)
 - Optional upstream user agent pool/chain via `?user-agent=<type>` or `?user-agent=<type1,type2,...>` where type is one of `ios`, `android`, `macos`, `windows`, `none`
 - User-agent pools are pre-generated into `src/user-agent-pools.json` from Microlink's `user` list (`https://microlink.io/user-agents.json`)
 - URL shortener continue domains are pre-generated into `src/url-shortener-domains.json` from HaGeZi's list (`https://raw.githubusercontent.com/hagezi/dns-blocklists/refs/heads/main/wildcard/urlshortener-onlydomains.txt`)
@@ -197,6 +197,7 @@ Each hop includes:
 
 - For `type=resolve`:
   - `request.url`: upstream URL requested for that hop.
+  - `request.method`: `HEAD` or `GET` (the method that produced the hop result).
   - `next_url`: resolved `Location` URL (or `null`).
   - `status`: upstream response status for the hop.
   - `response.headers`: upstream response headers for the hop.

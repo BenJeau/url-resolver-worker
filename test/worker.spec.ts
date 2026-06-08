@@ -11,6 +11,7 @@ type ResolveHopPayload = {
   type: "resolve";
   request: {
     url: string;
+    method?: "HEAD" | "GET";
     user_agents?: Array<{
       type: UserAgentType;
       value: string | null;
@@ -86,7 +87,11 @@ function installUpstreamMock(routes: Record<string, UpstreamHandler>) {
           `Unexpected upstream fetch: ${request.method} ${normalizedUrl}`,
         );
       }
-      return handler(request);
+      const response = await handler(request);
+      if (request.method === "HEAD" && !response.headers.get("location")) {
+        return new Response(null, { status: 405, headers: response.headers });
+      }
+      return response;
     },
   );
 
@@ -225,7 +230,7 @@ describe("url-resolver worker", () => {
       expect(response.status).toBe(200);
       expect(payload.urls.input).toBe("from-query.test");
       expect(payload.urls.normalized).toBe("https://from-query.test/");
-      expect(fetchMock).toHaveBeenCalledTimes(1);
+      expect(fetchMock).toHaveBeenCalledTimes(2);
     });
 
     it("uses plain text body url for POST requests", async () => {
@@ -243,7 +248,7 @@ describe("url-resolver worker", () => {
       expect(response.status).toBe(200);
       expect(payload.urls.input).toBe("from-post.test/path");
       expect(payload.urls.normalized).toBe("https://from-post.test/path");
-      expect(fetchMock).toHaveBeenCalledTimes(1);
+      expect(fetchMock).toHaveBeenCalledTimes(2);
     });
 
     it.each(["PATCH", "PUT", "DELETE"] as const)(
@@ -312,7 +317,7 @@ describe("url-resolver worker", () => {
       expect(firstResolveHop(payload)?.request?.url).toBe(
         "https://destination.test/final",
       );
-      expect(fetchMock).toHaveBeenCalledTimes(1);
+      expect(fetchMock).toHaveBeenCalledTimes(2);
     });
 
     it("extracts youtube redirect destination before resolving", async () => {
@@ -331,7 +336,7 @@ describe("url-resolver worker", () => {
       expect(firstResolveHop(payload)?.request?.url).toBe(
         "https://destination.test/youtube",
       );
-      expect(fetchMock).toHaveBeenCalledTimes(1);
+      expect(fetchMock).toHaveBeenCalledTimes(2);
     });
 
     it("extracts facebook l.php destination before resolving", async () => {
@@ -352,7 +357,7 @@ describe("url-resolver worker", () => {
       expect(firstResolveHop(payload)?.request?.url).toBe(
         "https://destination.test/facebook",
       );
-      expect(fetchMock).toHaveBeenCalledTimes(1);
+      expect(fetchMock).toHaveBeenCalledTimes(2);
     });
 
     it.each([
@@ -423,7 +428,7 @@ describe("url-resolver worker", () => {
         expect(firstResolveHop(payload)?.request?.url).toBe(
           expectedDestination,
         );
-        expect(fetchMock).toHaveBeenCalledTimes(1);
+        expect(fetchMock).toHaveBeenCalledTimes(2);
       },
     );
 
@@ -444,7 +449,7 @@ describe("url-resolver worker", () => {
       expect(firstResolveHop(payload)?.request?.url).toBe(
         "https://destination.test/nested",
       );
-      expect(fetchMock).toHaveBeenCalledTimes(1);
+      expect(fetchMock).toHaveBeenCalledTimes(2);
     });
 
     it("unwraps google amp path URLs", async () => {
@@ -471,7 +476,7 @@ describe("url-resolver worker", () => {
         next_url: expectedDestination,
         rule_id: "google-amp-path",
       });
-      expect(fetchMock).toHaveBeenCalledTimes(1);
+      expect(fetchMock).toHaveBeenCalledTimes(2);
     });
 
     it("unwraps google amp path URLs without /s/", async () => {
@@ -498,7 +503,7 @@ describe("url-resolver worker", () => {
         next_url: expectedDestination,
         rule_id: "google-amp-path-no-s",
       });
-      expect(fetchMock).toHaveBeenCalledTimes(1);
+      expect(fetchMock).toHaveBeenCalledTimes(2);
     });
 
     it("extracts viglink redirect destination before resolving", async () => {
@@ -518,7 +523,58 @@ describe("url-resolver worker", () => {
       expect(payload.urls.destination).toBe(expectedDestination);
       expect(payload.embedded_url_rule).toBe("viglink-redirect");
       expect(firstResolveHop(payload)?.request?.url).toBe(expectedDestination);
+      expect(fetchMock).toHaveBeenCalledTimes(2);
+    });
+  });
+
+  describe("HEAD to GET fallback", () => {
+    it("uses HEAD when redirect Location is present", async () => {
+      const fetchMock = installUpstreamMock({
+        "https://head-redirect.test/start": (request) => {
+          expect(request.method).toBe("HEAD");
+          return new Response(null, {
+            status: 301,
+            headers: { location: "https://example.com/final" },
+          });
+        },
+      });
+
+      const response = await SELF.fetch(
+        "https://resolver.test/?url=head-redirect.test/start",
+      );
+      const payload = await response.json<ResolvePayload>();
+
+      expect(response.status).toBe(200);
+      expect(payload.stop_reason).toBe("cross_domain_redirect");
+      expect(firstResolveHop(payload)?.request.method).toBe("HEAD");
       expect(fetchMock).toHaveBeenCalledTimes(1);
+    });
+
+    it("falls back to GET when HEAD has no Location header", async () => {
+      const methods: string[] = [];
+      const fetchMock = installUpstreamMock({
+        "https://head-fallback.test/start": (request) => {
+          methods.push(request.method);
+          if (request.method === "HEAD") {
+            return new Response(null, { status: 200 });
+          }
+          return new Response(null, {
+            status: 302,
+            headers: { location: "https://example.com/final" },
+          });
+        },
+      });
+
+      const response = await SELF.fetch(
+        "https://resolver.test/?url=head-fallback.test/start",
+      );
+      const payload = await response.json<ResolvePayload>();
+
+      expect(response.status).toBe(200);
+      expect(methods).toEqual(["HEAD", "GET"]);
+      expect(firstResolveHop(payload)?.request.method).toBe("GET");
+      expect(payload.stop_reason).toBe("cross_domain_redirect");
+      expect(fetchMock).toHaveBeenCalledTimes(2);
     });
   });
 
@@ -627,8 +683,7 @@ describe("url-resolver worker", () => {
             status: 302,
             headers: { location: "https://example.com/hop" },
           }),
-        "https://example.com/hop": () =>
-          new Response("done", { status: 200 }),
+        "https://example.com/hop": () => new Response("done", { status: 200 }),
       });
 
       const response = await SELF.fetch(
@@ -844,7 +899,7 @@ describe("url-resolver worker", () => {
 
       expect(response.status).toBe(200);
       expect(payload.worker.ip).toBe("203.0.113.10");
-      expect(fetchMock).toHaveBeenCalledTimes(2);
+      expect(fetchMock).toHaveBeenCalledTimes(3);
     });
 
     it("does not resolve worker IP when debug is false", async () => {
@@ -859,7 +914,7 @@ describe("url-resolver worker", () => {
 
       expect(response.status).toBe(200);
       expect(payload.worker.ip).toBeNull();
-      expect(fetchMock).toHaveBeenCalledTimes(1);
+      expect(fetchMock).toHaveBeenCalledTimes(2);
     });
   });
 
@@ -975,7 +1030,7 @@ describe("url-resolver worker", () => {
         expect(payload.hops[1]?.request.user_agents).toEqual([
           { type: userAgentType, value: expected },
         ]);
-        expect(requestUserAgents).toEqual([expected, expected]);
+        expect(requestUserAgents).toEqual([expected, expected, expected]);
       },
     );
 
@@ -1008,7 +1063,7 @@ describe("url-resolver worker", () => {
       expect(payload.hops[1]?.request.user_agents).toEqual([
         { type: "none", value: null },
       ]);
-      expect(requestUserAgents).toEqual([null, null]);
+      expect(requestUserAgents).toEqual([null, null, null]);
     });
 
     it("tries ordered user-agent values when 200 has no location", async () => {
@@ -1056,7 +1111,7 @@ describe("url-resolver worker", () => {
         },
         { type: "android", value: android },
       ]);
-      expect(seenUserAgents).toEqual([ios, android]);
+      expect(seenUserAgents).toEqual([ios, ios, android]);
     });
 
     it("tries next user-agent when redirect has no location header", async () => {
@@ -1104,7 +1159,7 @@ describe("url-resolver worker", () => {
         },
         { type: "android", value: android },
       ]);
-      expect(seenUserAgents).toEqual([ios, android]);
+      expect(seenUserAgents).toEqual([ios, ios, android]);
     });
 
     it("tries next user-agent when earlier attempt times out", async () => {
@@ -1154,7 +1209,7 @@ describe("url-resolver worker", () => {
         },
         { type: "android", value: android },
       ]);
-      expect(seenUserAgents).toEqual([ios, android]);
+      expect(seenUserAgents).toEqual([ios, ios, android]);
     });
 
     it("can retry with no header as part of an ordered user-agent chain", async () => {
@@ -1201,7 +1256,7 @@ describe("url-resolver worker", () => {
         },
         { type: "none", value: null },
       ]);
-      expect(requestUserAgents).toEqual([ios, null]);
+      expect(requestUserAgents).toEqual([ios, ios, null]);
     });
 
     it("tries next user-agent when location scheme is not http/https", async () => {
