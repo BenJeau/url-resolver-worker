@@ -316,8 +316,7 @@ curl -X POST "https://<your-worker>.workers.dev" \
 
 ```bash
 npm install
-npm run generate-user-agents
-npm run generate-url-shortener-domains
+npm run update-data
 npm run dev
 ```
 
@@ -374,6 +373,16 @@ npm run generate-url-shortener-domains
 ```
 
 This updates `src/url-shortener-domains.json`. Runtime requests read this file directly (no per-request list fetch).
+
+## Update both data files
+
+To refresh user-agent pools and shortener continue domains in one step:
+
+```bash
+npm run update-data
+```
+
+Commit the regenerated JSON (and deploy) for the worker to pick up the new lists. Extra continue-hop hosts that should not live in the HaGeZi list go in `CONTINUE_HOP_DOMAINS` in `wrangler.toml`.
 
 ## Generate Worker Types
 

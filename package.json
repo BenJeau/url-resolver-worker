@@ -8,6 +8,7 @@
     "dev": "wrangler dev",
     "generate-url-shortener-domains": "node scripts/generate-url-shortener-domains.mjs",
     "generate-user-agents": "node scripts/generate-user-agent-pools.mjs",
+    "update-data": "npm run generate-user-agents && npm run generate-url-shortener-domains",
     "generate-types": "wrangler types",
     "check": "npm run generate-types && tsc --noEmit",
     "test": "vitest run",
